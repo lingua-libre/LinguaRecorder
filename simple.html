@@ -14,11 +14,15 @@
 		<script type="text/javascript" src="js/legacy/swac-recorder/buffer.js"></script>
 		<script type="text/javascript" src="js/legacy/swac-recorder/buffers.js"></script>
 		<script type="text/javascript" src="js/legacy/swac-recorder/player.js"></script>
+		<script type="text/javascript" src="js/recorder/RawAudioBuffer.js"></script>
 		<script type="text/javascript" src="js/recorder/recorder.js"></script>
 
 		<script type="text/javascript">
+		    'use strict';
 		    $( function() {
-		        var recorder = new Recorder();
+
+		        /*window.recorder = new Recorder(  );
+
 		        recorder.on( 'ready', function() {
                     $( '#waiting' ).hide();
                     $( '#success' ).show();
@@ -48,10 +52,33 @@
 		        $( '#recorder-stop' ).click( function() { recorder.stop(); } );
 		        $( '#recorder-pause' ).click( function() { recorder.pause(); } );
 		        $( '#recorder-play' ).click( function() {
-                    var player = new Player(recorder.buffers);
-                    player.createArrayBuffer();
+                    var player = new Player( recorder.getAudioBuffer().getSamples() );
                     player.play();
 		        } );
+                */
+		        /////////////////////////////////////
+
+		        window.autoRecorder = new Recorder( { 'autoStart': true, 'autoStop': true, 'autoRestart': true } );
+
+		        autoRecorder.on( 'ready', function() {
+                    $( '#waiting' ).hide();
+                    $( '#success' ).show();
+                    autoRecorder.start();
+		        } );
+		        autoRecorder.on( 'readyFail', function() {
+                    $( '#waiting' ).hide();
+                    $( '#failed' ).show();
+		        } );
+
+		        autoRecorder.on( 'started', function() {
+		            console.log('started');
+		        } );
+		        autoRecorder.on( 'stoped', function( rawAudioBuffer ) {
+		            console.log('stoped');
+		            var player = new Player( rawAudioBuffer.getSamples() );
+                    player.play();
+		        } );
+
 		    } );
 		</script>
 	</head>
