@@ -14,7 +14,6 @@ TODO
   - raw to wav
   - raw to html5
 - buffer size
-- time limit
 - GUI
 - documentation
 - add/remove custom processor
@@ -42,7 +41,7 @@ var Recorder = function( config ) {
     this.autoStart = false || config.autoStart;
     this.autoStop = false || config.autoStop;
     this.bufferSize = 4096 || config.bufferSize;
-    this.timeLimit = null || config.timeLimit;
+    this.timeLimit = 0 || config.timeLimit;
 	this.cancelOnSaturate = false || config.cancelOnSaturate;
 	this.discardOnSaturate = false || config.discardOnSaturate;
 	this.saturationLevel = 0.99 || config.saturationLevel;
@@ -362,6 +361,13 @@ Recorder.prototype._audioRecordingProcess = function( e ) {
         }
         else {
 	        this._silenceSamplesCount = 0;
+        }
+    }
+
+    // If one is set, check if we have not reached the time limit
+    if ( this.timeLimit > 0 ) {
+        if ( this.timeLimit >= this.rawAudioBuffer.getDuration() ) {
+            this.stop();
         }
     }
 };
