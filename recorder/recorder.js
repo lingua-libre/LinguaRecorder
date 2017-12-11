@@ -13,13 +13,11 @@ TODO
   - raw to download
   - raw to wav
   - raw to html5
-- saturation control
 - buffer size
 - time limit
 - GUI
-- clean useless config
-- rtrim on autostop
 - documentation
+- add/remove custom processor
 */
 
 /**
@@ -29,7 +27,6 @@ TODO
  * @param {Object} [config] Configuration options
  * @cfg {boolean} [autoStart]
  * @cfg {boolean} [autoStop]
- * @cfg {boolean} [autoRestart]
  * @cfg {integer} [bufferSize]
  * @cfg {integer} [timeLimit]
  * @cfg {boolean} [saturationControl] Whether the recorder should discard the record when it saturate
@@ -44,17 +41,17 @@ var Recorder = function( config ) {
 
     this.autoStart = false || config.autoStart;
     this.autoStop = false || config.autoStop;
-    this.autoRestart = false || config.autoRestart;
     this.bufferSize = 4096 || config.bufferSize;
     this.timeLimit = null || config.timeLimit;
-	this.saturationControl = 0.99 || config.saturationControl;
+	this.cancelOnSaturate = false || config.cancelOnSaturate;
+	this.discardOnSaturate = false || config.discardOnSaturate;
+	this.saturationLevel = 0.99 || config.saturationLevel;
 	this.startThreshold = 0.1 || config.startThreshold;
-	this.silenceThreshold = 0.05 || config.silenceThreshold;
-	this.bufferLength = 0.8 || config.bufferLength;
-	this.marginBefore = 0.5 || config.marginBefore;
+	this.stopThreshold = 0.05 || config.stopThreshold;
+	this.stopDuration = 0.3 || config.stopDuration;
+	this.marginBefore = 0.25 || config.marginBefore;
 	this.marginAfter = 0.25 || config.marginAfter;
-	this.stopSilence = 0.3 || config.stopSilence;
-	this.minimalLength = 0.15 || config.minimalLength;
+	this.minDuration = 0.15 || config.minDuration;
 
 	this._state = STATE.stop;
 
@@ -64,6 +61,7 @@ var Recorder = function( config ) {
 		started: [],
 		listening: [],
 		recording: [],
+		saturated: [],
 		paused: [],
 		stoped: [],
 		canceled: [],
@@ -81,13 +79,8 @@ var Recorder = function( config ) {
 
 
 /* Methods */
-
-Recorder.prototype.getVolume = function() {
-
-};
-
 Recorder.prototype.getRecordingTime = function() {
-
+    return this.rawAudioBuffer.getDuration();
 };
 
 Recorder.prototype.getAudioBuffer = function() {
@@ -139,7 +132,7 @@ Recorder.prototype.pause = function() {
 	return true;
 };
 
-Recorder.prototype.stop = function() {
+Recorder.prototype.stop = function( cancelRecord ) {
     if ( this._state === STATE.stop ) {
         return false;
     }
@@ -149,27 +142,18 @@ Recorder.prototype.stop = function() {
 	}
 	this._state = STATE.stop
 
-	this.fire( 'stoped', this.rawAudioBuffer );
-
-	if ( this.autoRestart ) {
-	    this.start();
+    if ( cancelRecord !== true && this.rawAudioBuffer.getDuration() > this.minDuration && ! ( this.discardOnSaturate && this._isSaturated ) ) {
+	    this.fire( 'stoped', this.rawAudioBuffer );
+	}
+	else {
+	    this.fire( 'canceled' );
 	}
 
 	return true;
 };
 
 Recorder.prototype.cancel = function() {
-    if ( this._state === STATE.stop ) {
-        return false;
-    }
-
-    if ( this._state !== STATE.paused ) {
-	    this._disconnect();
-	}
-	this._state = STATE.stop
-
-	this.fire( 'canceled' );
-	return true;
+    return this.stop( true );
 };
 
 Recorder.prototype.toggle = function() {
@@ -344,6 +328,20 @@ Recorder.prototype._audioRecordingProcess = function( e ) {
     this.rawAudioBuffer.push( samples );
     this.fire( 'recording', samples );
 
+    // Check if the sample is not saturated
+    for ( var i=0; i < samples.length; i++ ) {
+        var amplitude = Math.abs( samples[ i ] );
+        if ( amplitude > this.saturationControl ) {
+            this.fire( 'saturated' );
+            this._isSaturated = true;
+            if ( this.cancelOnSaturated ) {
+                this.stop( true );
+                return;
+            }
+            break;
+        }
+    }
+
     // Analyse the sound to autoStop if needed
     if ( this.autoStop ) {
         var amplitudeMax = 0;
@@ -354,10 +352,11 @@ Recorder.prototype._audioRecordingProcess = function( e ) {
             }
         }
 
-        if ( amplitudeMax < this.silenceThreshold ) {
+        if ( amplitudeMax < this.stopThreshold ) {
             this._silenceSamplesCount += samples.length;
 
-            if ( this._silenceSamplesCount >= ( this.stopSilence * this.audioContext.sampleRate ) ) {
+            if ( this._silenceSamplesCount >= ( this.stopDuration * this.audioContext.sampleRate ) ) {
+                this.rawAudioBuffer.rtrim( this.stopDuration - this.marginAfter );
                 this.stop();
             }
         }
@@ -370,6 +369,7 @@ Recorder.prototype._audioRecordingProcess = function( e ) {
 Recorder.prototype._initAttr = function() {
 	this.rawAudioBuffer = new RawAudioBuffer( this.audioContext.sampleRate );
 	this._silenceSamplesCount = 0;
+	this._isSaturated = false;
 };
 
 

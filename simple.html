@@ -58,7 +58,7 @@
                 */
 		        /////////////////////////////////////
 
-		        window.autoRecorder = new Recorder( { 'autoStart': true, 'autoStop': true, 'autoRestart': true } );
+		        window.autoRecorder = new Recorder( { 'autoStart': true, 'autoStop': true } );
 
 		        autoRecorder.on( 'ready', function() {
                     $( '#waiting' ).hide();
@@ -77,6 +77,8 @@
 		            console.log('stoped');
 		            var player = new Player( rawAudioBuffer.getSamples() );
                     player.play();
+
+                    autoRecorder.start();
 		        } );
 
 		    } );
