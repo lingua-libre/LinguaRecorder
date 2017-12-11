@@ -17,6 +17,7 @@ TODO
 - GUI
 - documentation
 - add/remove custom processor
+- benefit from the MediaTrackConstraints when geting the stream
 */
 
 /**
@@ -248,12 +249,12 @@ Recorder.prototype._initStream = function() {
 
 	this._initAttr();
 
-	this.listeningProcessor = this.audioContext.createScriptProcessor( this.bufferLen, 1, 1 );
+	this.listeningProcessor = this.audioContext.createScriptProcessor( this.bufferSize, 1, 1 );
 	this.listeningProcessor.onaudioprocess = function( e ) {
 		recorder._audioListeningProcess( e );
 	};
 
-	this.recordingProcessor = this.audioContext.createScriptProcessor( this.bufferLen, 1, 1 );
+	this.recordingProcessor = this.audioContext.createScriptProcessor( this.bufferSize, 1, 1 );
 	this.recordingProcessor.onaudioprocess = function( e ) {
 		recorder._audioRecordingProcess( e );
 	};
