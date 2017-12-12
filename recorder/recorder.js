@@ -13,11 +13,10 @@ TODO
   - raw to download
   - raw to wav
   - raw to html5
-- buffer size
 - GUI
-- documentation
 - add/remove custom processor
 - benefit from the MediaTrackConstraints when geting the stream
+- replace STATE
 */
 
 /**
@@ -25,13 +24,18 @@ TODO
  *
  * @constructor
  * @param {Object} [config] Configuration options
- * @cfg {boolean} [autoStart]
- * @cfg {boolean} [autoStop]
- * @cfg {integer} [bufferSize]
- * @cfg {integer} [timeLimit]
- * @cfg {boolean} [saturationControl] Whether the recorder should discard the record when it saturate
- * @cfg {} []
- * @cfg {} []
+ * @cfg {boolean} [autoStart=false] Set to true to wait for voice detection when calling the start() method.
+ * @cfg {boolean} [autoStop=false] Set to true to stop the record when there is a silence
+ * @cfg {number} [bufferSize=4096] Set the size of the samples buffers. Could be 0 (let the browser choose the best one) or one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384; the less the more precise, the higher the more efficient.
+ * @cfg {number} [timeLimit=0] Maximum time (in seconds) after which it is necessary to stop recording. Set to 0 (default) for no time limit.
+ * @cfg {string} [onSaturate='none'] Tell what to do when a record is saturated. Accepted values are 'none' (default), 'cancel' and 'discard'.
+ * @cfg {number} [saturationThreshold=0.99] Amplitude value between 0 and 1 included. Only used if onSaturate is different from 'none'. Threshold above which a record should be flagged as saturated.
+ * @cfg {number} [startThreshold=0.1] Amplitude value between 0 and 1 included. Only used if autoStart is set to true. Amplitude to reach to auto-start the recording.
+ * @cfg {number} [stopThreshold=0.05] Amplitude value between 0 and 1 included. Only used if autoStop is set to true. Amplitude not to exceed in a stopDuration interval to auto-stop recording.
+ * @cfg {number} [stopDuration=0.3] Duration value in seconds. Only used if autoStop is set to true. Duration during which not to exceed the stopThreshold in order to auto-stop recording.
+ * @cfg {number} [marginBefore=0.25] Duration value in seconds. Only used if autoStart is set to true.
+ * @cfg {number} [marginAfter=0.25] Duration value in seconds. Only used if autoStop is set to true.
+ * @cfg {number} [minDuration=0.15] Duration value in seconds. Discard the record if it last less than minDuration. Default value to 0.15, use 0 to disable.
  */
 var Recorder = function( config ) {
 	// Configuration initialization
@@ -43,9 +47,9 @@ var Recorder = function( config ) {
     this.autoStop = false || config.autoStop;
     this.bufferSize = 4096 || config.bufferSize;
     this.timeLimit = 0 || config.timeLimit;
-	this.cancelOnSaturate = false || config.cancelOnSaturate;
-	this.discardOnSaturate = false || config.discardOnSaturate;
-	this.saturationLevel = 0.99 || config.saturationLevel;
+	this.cancelOnSaturate = false || ( config.onSaturate === 'cancel' );
+	this.discardOnSaturate = false || ( config.onSaturate === 'discard' );
+	this.saturationThreshold = 0.99 || config.saturationThreshold;
 	this.startThreshold = 0.1 || config.startThreshold;
 	this.stopThreshold = 0.05 || config.stopThreshold;
 	this.stopDuration = 0.3 || config.stopDuration;
@@ -54,6 +58,9 @@ var Recorder = function( config ) {
 	this.minDuration = 0.15 || config.minDuration;
 
 	this._state = STATE.stop;
+    this._rawAudioBuffer = null;
+    this._silenceSamplesCount = 0;
+    this._isSaturated = false;
 
 	this._eventListeners = {
 		ready: [],
@@ -78,43 +85,71 @@ var Recorder = function( config ) {
 
 
 
-/* Methods */
+
+/**
+ * Return the current duration of the recording.
+ *
+ * @return {number} The duration in seconds
+ */
 Recorder.prototype.getRecordingTime = function() {
-    return this.rawAudioBuffer.getDuration();
+    return this._rawAudioBuffer.getDuration();
 };
 
-Recorder.prototype.getAudioBuffer = function() {
-    return this.rawAudioBuffer;
+
+/**
+ * Return the current state of the recorder.
+ *
+ * @return {string} One of the following: 'stop', 'listening', 'recording', 'paused'
+ */
+Recorder.prototype.getRecordingTime = function() {
+    return this._rawAudioBuffer.getDuration();
 };
 
-Recorder.prototype.getEncodedRecord = function() {
 
-};
-
+/**
+ * Start to record.
+ *
+ * If autoStart is set to true, enter in listening state and postpone the start
+ * of the recording when a voice will be detected.
+ *
+ * @return {boolean} Has the record being started or not.
+ */
 Recorder.prototype.start = function() {
 	if ( this.audioContext === undefined || this._state in [ STATE.listening, STATE.recording ] ) {
 	    return false;
 	}
 
 	if ( this._state === STATE.stop ) {
-		this._initAttr();
+	    this._rawAudioBuffer = new RawAudioBuffer( this.audioContext.sampleRate );
+	    this._silenceSamplesCount = 0;
+	    this._isSaturated = false;
 
         if ( this.autoStart ) {
             this._state = STATE.listening;
             this._connect();
-
-            return true;
         }
 	}
 
     this._state = STATE.recording;
     this._connect();
 
-    this.fire( 'started' );
+    this._fire( 'started' );
 
 	return true;
 };
 
+
+/**
+ * Switch the record to the pause state.
+ *
+ * While in pause, all the inputs comming from the microphone will be ignored.
+ * To resume to the recording state, just call the start() method again.
+ * It is also still possible to stop() or cancel() a record,
+ * and you have to do so upstream if you wish to start a new one.
+ *
+ * @param {boolean} [cancelRecord=false] Used to cancel a record. If set to true, discard the record in any cases.
+ * @return {boolean} Has the record being paused or not.
+ */
 Recorder.prototype.pause = function() {
     if ( this._state !== STATE.recording ) {
         return false;
@@ -128,11 +163,25 @@ Recorder.prototype.pause = function() {
 	    this._state = STATE.paused;
 	}
 
-	this.fire( 'paused' );
+	this._fire( 'paused' );
 	return true;
 };
 
+
+/**
+ * Stop the recording process and fire the record to the user.
+ *
+ * Depending of the configuration, this method could discard the record
+ * if it fails some quality controls (duration and saturation).
+ *
+ * To start a new record afterwards, just call the start() method again.
+ *
+ * @param {boolean} [cancelRecord=false] Used to cancel a record. If set to true, discard the record in any cases.
+ * @return {boolean} Has the record being stopped or not.
+ */
 Recorder.prototype.stop = function( cancelRecord ) {
+    var cancelRecord = false || cancelRecord;
+
     if ( this._state === STATE.stop ) {
         return false;
     }
@@ -142,20 +191,29 @@ Recorder.prototype.stop = function( cancelRecord ) {
 	}
 	this._state = STATE.stop
 
-    if ( cancelRecord !== true && this.rawAudioBuffer.getDuration() > this.minDuration && ! ( this.discardOnSaturate && this._isSaturated ) ) {
-	    this.fire( 'stoped', this.rawAudioBuffer );
+    if ( cancelRecord !== true && this._rawAudioBuffer.getDuration() > this.minDuration && ! ( this.discardOnSaturate && this._isSaturated ) ) {
+	    this._fire( 'stoped', this._rawAudioBuffer );
 	}
 	else {
-	    this.fire( 'canceled' );
+	    this._rawAudioBuffer = new RawAudioBuffer( this.audioContext.sampleRate );
+	    this._fire( 'canceled' );
 	}
 
 	return true;
 };
 
+
+/**
+ * Stop a recording, but without saving the record.
+ */
 Recorder.prototype.cancel = function() {
     return this.stop( true );
 };
 
+
+/**
+ * Toggle between the recording and stopped state.
+ */
 Recorder.prototype.toggle = function() {
 	if ( this._state in [ STATE.recording, STATE.listening ] ) {
 		this.stop();
@@ -165,6 +223,14 @@ Recorder.prototype.toggle = function() {
 	}
 };
 
+
+/**
+ * Attach a handler function to a given event.
+ *
+ * @param {string} [event] Name of an event.
+ * @param {function} [handler] A function to execute when the event is triggered.
+ * @chainable
+ */
 Recorder.prototype.on = function( event, listener ) {
 	if ( event in this._eventListeners ) {
 		this._eventListeners[ event ].push( listener );
@@ -178,6 +244,13 @@ Recorder.prototype.on = function( event, listener ) {
 	return this;
 };
 
+
+/**
+ * Remove all the handler function from an event.
+ *
+ * @param {string} [event] Name of an event.
+ * @chainable
+ */
 Recorder.prototype.off = function( event ) {
 	if ( event in this._eventListeners ) {
 		this._eventListeners[ event ] = [];
@@ -186,22 +259,41 @@ Recorder.prototype.off = function( event ) {
 	return this;
 };
 
-Recorder.prototype.fire = function( event, value ) {
+
+/**
+ * Fire a give event to all the registred handlers functions.
+ *
+ * For one-time events (ready, readyFail), stores the firered value
+ * to be able to re-fire it for listners that are registered later
+ *
+ * @param {string} [event] Name of the event to fire.
+ * @return {Object|Array|string|undefined} [value] Bounds if valid.
+ * @private
+ */
+Recorder.prototype._fire = function( event, value ) {
 	if ( event in this._eventListeners ) {
 		for ( var i=0; i<this._eventListeners[ event ].length; i++ ) {
 			this._eventListeners[ event ][ i ]( value );
 		}
 	}
 
-	// For one-time events, store the fired value
-	// to be able to re-fire it for listners that are registered later
 	if ( event in this._eventStorage ) {
 	    this._eventStorage[ event ] = value;
 	}
 };
 
 
-
+/**
+ * First step to initialise the Recorder object. Try to get a MediaStream object
+ * with tracks containing an audio input from the microphone of the user.
+ *
+ * Note that it will prompt a notification requesting permission from the user.
+ * Furthermore, modern browsers requires the use of HTTPS to allow it.
+ *
+ * for more details: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+ *
+ * @private
+ */
 Recorder.prototype._getAudioStream = function() {
 	var recorder = this;
 
@@ -215,9 +307,9 @@ Recorder.prototype._getAudioStream = function() {
 		.then(function(localMediaStream) {
 			recorder.stream = localMediaStream;
 			recorder._initStream();
-			recorder.fire( 'ready', localMediaStream );
+			recorder._fire( 'ready', localMediaStream );
 		} ).catch(function(err) {
-			recorder.fire( 'readyFail', err );
+			recorder._fire( 'readyFail', err );
 		} );
 	}
 	// Legacy methods, kept to support old browsers
@@ -232,22 +324,29 @@ Recorder.prototype._getAudioStream = function() {
 			function(localMediaStream) {
 				recorder.stream = localMediaStream;
 				recorder._initStream();
-				recorder.fire( 'ready', localMediaStream );
+				recorder._fire( 'ready', localMediaStream );
 			},
 			function(err) {
-				recorder.fire( 'readyFail', err );
+				recorder._fire( 'readyFail', err );
 			}
 		);
 	}
 };
 
+
+/**
+ * Called once we got a MediaStream. Create an AudioContext and
+ * some needed AudioNode.
+ *
+ * for more details: https://developer.mozilla.org/fr/docs/Web/API/AudioNode
+ *
+ * @private
+ */
 Recorder.prototype._initStream = function() {
 	var recorder = this;
 
     this.audioContext = new window.AudioContext();
 	this.audioInput = this.audioContext.createMediaStreamSource( this.stream );
-
-	this._initAttr();
 
 	this.listeningProcessor = this.audioContext.createScriptProcessor( this.bufferSize, 1, 1 );
 	this.listeningProcessor.onaudioprocess = function( e ) {
@@ -260,6 +359,13 @@ Recorder.prototype._initStream = function() {
 	};
 };
 
+
+/**
+ * Connect the audioInput node to a processor node, choosen depending of the
+ * current state of the recorder.
+ *
+ * @private
+ */
 Recorder.prototype._connect = function() {
     var processor;
     if ( this._state === STATE.listening ) {
@@ -273,6 +379,12 @@ Recorder.prototype._connect = function() {
     processor.connect( this.audioContext.destination );
 }
 
+
+/**
+ * Disconnect the audioInput node from the currently connected processor node.
+ *
+ * @private
+ */
 Recorder.prototype._disconnect = function() {
     var processor;
     if ( this._state === STATE.listening ) {
@@ -286,6 +398,15 @@ Recorder.prototype._disconnect = function() {
 	processor.disconnect( this.audioContext.destination );
 }
 
+
+/**
+ * Event handler for the listening ScriptProcessorNode.
+ *
+ * Check whether it can auto-start recording, or store
+ * the last marginBefore seconds incomming from the microphone.
+ *
+ * @private
+ */
 Recorder.prototype._audioListeningProcess = function( e ) {
     // Discard extra samples if the recording has already been paused or stopped
 	if ( this._state in [ STATE.stop, STATE.paused ] ) {
@@ -303,18 +424,30 @@ Recorder.prototype._audioListeningProcess = function( e ) {
             this._disconnect();
             this._state = STATE.recording;
             this._connect();
-	        this.fire( 'started' );
+	        this._fire( 'started' );
             return this._audioRecordingProcess( e );
         }
     }
 
 	// Store the sound in the RawAudioBuffer
     if ( this.marginBefore > 0 ) {
-        this.rawAudioBuffer.push( samples, this.marginBefore );
+        this._rawAudioBuffer.push( samples, this.marginBefore );
     }
-    this.fire( 'listening', samples );
+    this._fire( 'listening', samples );
 };
 
+
+/**
+ * Event handler for the recording ScriptProcessorNode.
+ *
+ * In charge of saving the incomming audio stream from the user's microphone
+ * into the rawAudioBuffer.
+ *
+ * Check also if the incomming sound is not saturated, if the timeLimit
+ * is not reached, and if the record should auto-stop.
+ *
+ * @private
+ */
 Recorder.prototype._audioRecordingProcess = function( e ) {
     // Discard extra samples if the recording has already been paused or stopped
 	if ( this._state in [ STATE.stop, STATE.paused ] ) {
@@ -325,14 +458,14 @@ Recorder.prototype._audioRecordingProcess = function( e ) {
 	var samples = new Float32Array( e.inputBuffer.getChannelData( 0 ) ); // Copy the samples in a new Float32Array, to avoid memory dealocation
 
 	// Store the sound in the RawAudioBuffer
-    this.rawAudioBuffer.push( samples );
-    this.fire( 'recording', samples );
+    this._rawAudioBuffer.push( samples );
+    this._fire( 'recording', samples );
 
-    // Check if the sample is not saturated
+    // Check if the samples are not saturated
     for ( var i=0; i < samples.length; i++ ) {
         var amplitude = Math.abs( samples[ i ] );
-        if ( amplitude > this.saturationControl ) {
-            this.fire( 'saturated' );
+        if ( amplitude > this.saturationThreshold ) {
+            this._fire( 'saturated' );
             this._isSaturated = true;
             if ( this.cancelOnSaturated ) {
                 this.stop( true );
@@ -356,7 +489,7 @@ Recorder.prototype._audioRecordingProcess = function( e ) {
             this._silenceSamplesCount += samples.length;
 
             if ( this._silenceSamplesCount >= ( this.stopDuration * this.audioContext.sampleRate ) ) {
-                this.rawAudioBuffer.rtrim( this.stopDuration - this.marginAfter );
+                this._rawAudioBuffer.rtrim( this.stopDuration - this.marginAfter );
                 this.stop();
             }
         }
@@ -367,16 +500,10 @@ Recorder.prototype._audioRecordingProcess = function( e ) {
 
     // If one is set, check if we have not reached the time limit
     if ( this.timeLimit > 0 ) {
-        if ( this.timeLimit >= this.rawAudioBuffer.getDuration() ) {
+        if ( this.timeLimit >= this._rawAudioBuffer.getDuration() ) {
             this.stop();
         }
     }
-};
-
-Recorder.prototype._initAttr = function() {
-	this.rawAudioBuffer = new RawAudioBuffer( this.audioContext.sampleRate );
-	this._silenceSamplesCount = 0;
-	this._isSaturated = false;
 };
 
 
