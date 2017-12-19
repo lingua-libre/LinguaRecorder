@@ -3,7 +3,6 @@
 	<head>
 		<title>Swac Recorder JS</title>
 		<meta charset="utf-8"/>
-		<link href="css/style.css" type="text/css" rel="stylesheet"/>
 		<base href="../"/>
 
         <script
@@ -11,91 +10,195 @@
 			integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
 			crossorigin="anonymous"></script>
 
-		<script type="text/javascript" src="js/legacy/swac-recorder/buffer.js"></script>
-		<script type="text/javascript" src="js/legacy/swac-recorder/buffers.js"></script>
 		<script type="text/javascript" src="js/legacy/swac-recorder/player.js"></script>
-		<script type="text/javascript" src="js/recorder/RawAudioBuffer.js"></script>
-		<script type="text/javascript" src="js/recorder/recorder.js"></script>
+		<script type="text/javascript" src="js/recorder/AudioRecord.js"></script>
+		<script type="text/javascript" src="js/recorder/Recorder.js"></script>
+		<script type="text/javascript" src="js/recorder/Studio.js"></script>
+		<script type="text/javascript" src="js/recorder/WordListStudio.js"></script>
 
 		<script type="text/javascript">
 		    'use strict';
 		    $( function() {
-
-		        /*window.recorder = new Recorder(  );
-
-		        recorder.on( 'ready', function() {
-                    $( '#waiting' ).hide();
-                    $( '#success' ).show();
+		        new Recorder().on('ready', function() {
+		            //window.manualStudio = new ManualStudio( { $element: $( '#manualstudio' ) } );
+		            //window.singleWordStudio = new SingleWordStudio( { $element: $( '#singlewordstudio' ) } );
+		            window.wordListStudio = new WordListStudio( { $element: $( '#wordliststudio' ) } );
 		        } );
-		        recorder.on( 'readyFail', function() {
-                    $( '#waiting' ).hide();
-                    $( '#failed' ).show();
-		        } );
-		        recorder.on( 'started', function() {
-		            $( '#recorder-start' ).attr( 'disabled', true );
-		            $( '#recorder-pause' ).attr( 'disabled', false );
-		            $( '#recorder-stop' ).attr( 'disabled', false );
-		            $( '#recorder-play' ).attr( 'disabled', true );
-		        } );
-		        recorder.on( 'paused', function() {
-		            $( '#recorder-start' ).attr( 'disabled', false );
-		            $( '#recorder-pause' ).attr( 'disabled', true );
-		        } );
-		        recorder.on( 'stoped', function() {
-		            $( '#recorder-start' ).attr( 'disabled', false );
-		            $( '#recorder-pause' ).attr( 'disabled', true );
-		            $( '#recorder-stop' ).attr( 'disabled', true );
-		            $( '#recorder-play' ).attr( 'disabled', false );
-		        } );
-
-		        $( '#recorder-start' ).click( function() { recorder.start(); } );
-		        $( '#recorder-stop' ).click( function() { recorder.stop(); } );
-		        $( '#recorder-pause' ).click( function() { recorder.pause(); } );
-		        $( '#recorder-play' ).click( function() {
-                    var player = new Player( recorder.getAudioBuffer().getSamples() );
-                    player.play();
-		        } );
-                */
-		        /////////////////////////////////////
-
-		        window.autoRecorder = new Recorder( { 'autoStart': true, 'autoStop': true } );
-
-		        autoRecorder.on( 'ready', function() {
-                    $( '#waiting' ).hide();
-                    $( '#success' ).show();
-                    autoRecorder.start();
-		        } );
-		        autoRecorder.on( 'readyFail', function() {
-                    $( '#waiting' ).hide();
-                    $( '#failed' ).show();
-		        } );
-
-		        autoRecorder.on( 'started', function() {
-		            console.log('started');
-		        } );
-		        autoRecorder.on( 'stoped', function( rawAudioBuffer ) {
-		            console.log('stoped');
-		            var player = new Player( rawAudioBuffer.getSamples() );
-                    player.play();
-
-                    autoRecorder.start();
-		        } );
-
 		    } );
 		</script>
+		<style>
+		    .studio {
+		        max-width: 800px;
+		        border: 1px dotted #909090;
+		        margin: 0;
+		        padding: 0;
+		    }
+		    .studio-head {
+		        position:relative;
+
+		        width: 400px;
+		        height: 150px;
+		        margin: 0;
+		        padding: 0;
+		        border: 1px solid #909090;
+		        margin: auto;
+		    }
+
+		    .studio-canvas {
+		        position: absolute;
+		        top: 0px;
+		        left: 0px;
+		    }
+
+		    .studio-rbutton {
+		        position: absolute;
+		        top: 0px;
+		        left: 125px;
+		        border: 10px solid #404040;
+		        border-radius: 50%;
+		        width: 130px;
+		        height: 130px;
+		        background: white;
+		    }
+
+		    .studio-rec .studio-rbutton {
+		        border: 10px solid #232323;
+
+	            animation-name: pulse;
+	            animation-duration: 1.5s;
+	            animation-iteration-count: infinite;
+	            animation-timing-function: linear;
+            }
+
+		    .studio-rbutton-inner {
+		        position: absolute;
+		        top: 5px;
+		        left: 5px;
+		        border-radius: 50%;
+		        width: 120px;
+		        height: 120px;
+		        border: 0;
+                text-align: center;
+		        background: rgb(214, 214, 214);
+		    }
+
+		    .studio-rbutton-inner::-moz-focus-inner {
+                border: 0;
+            }
+
+		    .studio-ready .studio-rbutton-inner {
+		        background-color: #d8938a;
+		    }
+
+		    .studio-ready .studio-rbutton-inner:hover {
+		        background-color: #ce8177;
+		    }
+
+		    .studio-ready.studio-rec .studio-rbutton-inner {
+		        background-color: #d12c17;
+		    }
+
+		    .studio-logo {
+		        position: relative;
+		        top: 6px;
+		        width: 80px;
+		        height: 80px;
+		    }
+
+            .studio-wordlist {
+		        border: 1px solid #909090;
+		        margin: 0;
+		        padding: 0px;
+
+                display:flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .studio-wordlist li {
+		        position:relative;
+                color: #fff;
+                padding: 10px;
+                list-style: none;
+                margin: 5px;
+
+                background: #3399FF;
+            }
+
+            .studio-wordlist li.studio-wordlist-selected {
+                text-decoration: underline;
+		        border: 1px dashed black;
+            }
+
+            .studio-wordlist li.studio-wordlist-success {
+                background: olivedrab;
+            }
+
+            .studio-wordlist li.studio-wordlist-waiting {
+                background: #FF3399;
+            }
+
+            .studio-wordlist li.studio-wordlist-error {
+                background: tomato;
+            }
+
+            .studio-wordcanvas {
+		        position: absolute;
+		        top: 0px;
+		        left: 0px;
+            }
+
+            .hidden {
+                display: none;
+            }
+
+            @keyframes pulse{
+	            0%{
+		            box-shadow: 0px 0px 5px 0px rgba(173,0,0,.3);
+	            }
+	            65%{
+		            box-shadow: 0px 0px 5px 13px rgba(173,0,0,.3);
+	            }
+	            90%{
+		            box-shadow: 0px 0px 5px 13px rgba(173,0,0,0);
+	            }
+            }
+		</style>
 	</head>
 	<body>
-	    <div id="waiting">
-	        Waiting for authorisation to access to microphone.
+	    <div id="manualstudio" class="studio">
+	        <div class="studio-head">
+	            <canvas class="studio-canvas" width="400" height="150"></canvas>
+	            <div class="studio-rbutton">
+	                <button class="studio-rbutton-inner">
+	                    <img class="studio-logo" src="/js/ll-logo-white.svg"/>
+	                </button>
+	            </div>
+	        </div>
 	    </div>
-	    <div id="failed" style="display: none;">
-	        Failed to access the microphone.
-	    </div>
-	    <div id="success" style="display: none;">
-	        <button type="button" id="recorder-start">Start</button>
-	        <button type="button" id="recorder-pause" disabled="disabled">Pause</button>
-	        <button type="button" id="recorder-stop" disabled="disabled">Stop</button>
-	        <button type="button" id="recorder-play" disabled="disabled">Play</button>
+	    <div id="wordliststudio" class="studio">
+	        <div class="studio-head">
+	            <canvas class="studio-canvas" width="400" height="150"></canvas>
+	            <div class="studio-rbutton">
+	                <button class="studio-rbutton-inner">
+	                    <img class="studio-logo" src="/js/ll-logo-white.svg"/>
+	                </button>
+	            </div>
+	        </div>
+	        <ul class="studio-wordlist">
+                <li>Picon bière</li>
+                <li>Melfor</li>
+                <li>Carola</li>
+                <li>Flammekueche</li>
+                <li>Wurscht</li>
+                <li>Christkindelsmärik</li>
+                <li>Dahlias</li>
+                <li>Racing</li>
+                <li>bibalaekaess</li>
+                <li>baeckeoffe</li>
+                <li>mänele</li>
+	        </ul>
+            <canvas class="studio-wordcanvas hidden"></canvas>
 	    </div>
 	</body>
 </html>
