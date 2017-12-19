@@ -1,13 +1,23 @@
 'use strict';
 
+/*
+ TODO
+ - ajouter
+   - this.wavFile
+   - this.downloadLink
+   - this.Html5AudioDomElement
+   - play
+ - Documenter
+*/
 
-var RawAudioBuffer = function( sampleRate ) {
+
+var AudioRecord = function( sampleRate ) {
 	this.sampleRate = sampleRate;
 	this.sampleBlocs = [];
 	this.length = 0;
 };
 
-RawAudioBuffer.prototype.push = function( samples, rollingDuration ) {
+AudioRecord.prototype.push = function( samples, rollingDuration ) {
     this.length += samples.length;
 	this.sampleBlocs.push( samples );
 
@@ -21,23 +31,23 @@ RawAudioBuffer.prototype.push = function( samples, rollingDuration ) {
     return this.length;
 };
 
-RawAudioBuffer.prototype.setSampleRate = function( value ) {
+AudioRecord.prototype.setSampleRate = function( value ) {
 	this.sampleRate = value;
 };
 
-RawAudioBuffer.prototype.getSampleRate = function() {
+AudioRecord.prototype.getSampleRate = function() {
 	return this.sampleRate;
 };
 
-RawAudioBuffer.prototype.getLength = function() {
+AudioRecord.prototype.getLength = function() {
 	return this.length;
 };
 
-RawAudioBuffer.prototype.getDuration = function() {
+AudioRecord.prototype.getDuration = function() {
 	return this.length / this.sampleRate;
 };
 
-RawAudioBuffer.prototype.getSamples = function() {
+AudioRecord.prototype.getSamples = function() {
     var flattened = new Float32Array( this.length + 575 ),
         nbBlocs = this.sampleBlocs.length,
         offset = 0;
@@ -50,7 +60,7 @@ RawAudioBuffer.prototype.getSamples = function() {
 	return flattened;
 };
 
-RawAudioBuffer.prototype.ltrim = function( duration ) {
+AudioRecord.prototype.ltrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 	if ( nbSamplesToRemove >= this.length ) {
@@ -68,7 +78,7 @@ RawAudioBuffer.prototype.ltrim = function( duration ) {
     }
 };
 
-RawAudioBuffer.prototype.rtrim = function( duration ) {
+AudioRecord.prototype.rtrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 	if ( nbSamplesToRemove >= this.length ) {
@@ -87,7 +97,7 @@ RawAudioBuffer.prototype.rtrim = function( duration ) {
     }
 };
 
-RawAudioBuffer.prototype.clear = function() {
+AudioRecord.prototype.clear = function() {
     this.length = 0;
 	this.sampleBlocs = [];
 };
