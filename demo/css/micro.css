@@ -1,0 +1,27 @@
+
+.studio-rbutton {
+    position: static;
+    font-size: 0;
+    border: 0;
+    border-radius: 35px;
+    margin-right: 10px;
+    outline: none;
+    background-color: rgb(214, 214, 214);
+}
+.studio-ready .studio-rbutton {
+    background-color: darkred;
+}
+
+.studio-rec .studio-rbutton {
+    background-color: red;
+    border: 0;
+}
+
+.studio-wordlist {
+    position: relative;
+
+    display:flex;
+    flex-direction: row;
+    overflow-x: scroll;
+}
+

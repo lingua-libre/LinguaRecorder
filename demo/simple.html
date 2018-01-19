@@ -3,18 +3,16 @@
 	<head>
 		<title>Swac Recorder JS</title>
 		<meta charset="utf-8"/>
-		<base href="../"/>
+		<link rel="stylesheet" type="text/css" href="/demo/css/demo.css">
 
         <script
 			src="https://code.jquery.com/jquery-3.2.1.js"
 			integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
 			crossorigin="anonymous"></script>
 
-		<script type="text/javascript" src="js/legacy/swac-recorder/player.js"></script>
-		<script type="text/javascript" src="js/recorder/AudioRecord.js"></script>
-		<script type="text/javascript" src="js/recorder/Recorder.js"></script>
-		<script type="text/javascript" src="js/recorder/Studio.js"></script>
-		<script type="text/javascript" src="js/recorder/WordListStudio.js"></script>
+		<script type="text/javascript" src="/src/AudioRecord.js"></script>
+		<script type="text/javascript" src="/src/Recorder.js"></script>
+		<script type="text/javascript" src="/demo/js/Studio.js"></script>
 
 		<script type="text/javascript">
 		    'use strict';
@@ -24,148 +22,6 @@
 		        } );
 		    } );
 		</script>
-		<style>
-		    .studio {
-		        max-width: 800px;
-		        border: 1px dotted #909090;
-		        margin: 0;
-		        padding: 0;
-		    }
-		    .studio-head {
-		        position:relative;
-
-		        width: 400px;
-		        height: 150px;
-		        margin: 0;
-		        padding: 0;
-		        border: 1px solid #909090;
-		        margin: auto;
-		    }
-
-		    .studio-canvas {
-		        position: absolute;
-		        top: 0px;
-		        left: 0px;
-		    }
-
-		    .studio-rbutton {
-		        position: absolute;
-		        top: 0px;
-		        left: 125px;
-		        border: 10px solid #404040;
-		        border-radius: 50%;
-		        width: 130px;
-		        height: 130px;
-		        background: white;
-		    }
-
-		    .studio-rec .studio-rbutton {
-		        border: 10px solid #232323;
-
-	            animation-name: pulse;
-	            animation-duration: 1.5s;
-	            animation-iteration-count: infinite;
-	            animation-timing-function: linear;
-            }
-
-		    .studio-rbutton-inner {
-		        position: absolute;
-		        top: 5px;
-		        left: 5px;
-		        border-radius: 50%;
-		        width: 120px;
-		        height: 120px;
-		        border: 0;
-                text-align: center;
-		        background: rgb(214, 214, 214);
-		    }
-
-		    .studio-rbutton-inner::-moz-focus-inner {
-                border: 0;
-            }
-
-		    .studio-ready .studio-rbutton-inner {
-		        background-color: #d8938a;
-		    }
-
-		    .studio-ready .studio-rbutton-inner:hover {
-		        background-color: #ce8177;
-		    }
-
-		    .studio-ready.studio-rec .studio-rbutton-inner {
-		        background-color: #d12c17;
-		    }
-
-		    .studio-logo {
-		        position: relative;
-		        top: 6px;
-		        width: 80px;
-		        height: 80px;
-		    }
-
-            .studio-wordlist {
-		        border: 1px solid #909090;
-		        margin: 0;
-		        padding: 0px;
-
-                display:flex;
-                flex-direction: row;
-                flex-wrap: wrap;
-            }
-
-            .studio-wordlist li {
-		        position:relative;
-                color: #fff;
-                padding: 10px;
-                list-style: none;
-                margin: 5px;
-
-                background: #3399FF;
-            }
-
-            .studio-wordlist li.studio-wordlist-selected {
-                text-decoration: underline;
-		        border: 1px dashed black;
-            }
-
-            .studio-wordlist li.studio-wordlist-success {
-                background: olivedrab;
-            }
-
-            .studio-wordlist li.studio-wordlist-waiting {
-                background: #FF3399;
-            }
-
-            .studio-wordlist li.studio-wordlist-error {
-                background: tomato;
-            }
-
-            .studio-wordcanvas {
-		        position: absolute;
-		        top: 0px;
-		        left: 0px;
-            }
-
-            .hidden {
-                display: none;
-            }
-
-            @keyframes pulse{
-	            0%{
-		            box-shadow: 0px 0px 5px 0px rgba(173,0,0,.3);
-	            }
-	            65%{
-		            box-shadow: 0px 0px 5px 13px rgba(173,0,0,.3);
-	            }
-	            90%{
-		            box-shadow: 0px 0px 5px 13px rgba(173,0,0,0);
-	            }
-            }
-
-            /* Mini */
-
-
-		</style>
 	</head>
 	<body>
 	    <div id="manualstudio" class="studio">
@@ -173,7 +29,7 @@
 	            <canvas class="studio-canvas" width="400" height="150"></canvas>
 	            <div class="studio-rbutton">
 	                <button class="studio-rbutton-inner">
-	                    <img class="studio-logo" src="/js/ll-logo-white.svg"/>
+	                    <img class="studio-logo" src="/demo/img/ll-logo-white.svg"/>
 	                </button>
 	            </div>
 	        </div>

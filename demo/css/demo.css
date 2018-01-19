@@ -1,0 +1,217 @@
+.studio {
+    max-width: 800px;
+    border: 1px dotted #909090;
+    margin: 0;
+    padding: 0;
+}
+.studio-head {
+    position:relative;
+
+    width: 400px;
+    height: 150px;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #909090;
+    margin: auto;
+}
+
+.studio-canvas {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+.studio-rbutton {
+    position: absolute;
+    top: 0px;
+    left: 125px;
+    border: 10px solid #404040;
+    border-radius: 50%;
+    width: 130px;
+    height: 130px;
+    background: white;
+}
+
+.studio-rec .studio-rbutton {
+    border: 10px solid #232323;
+
+    animation-name: pulse;
+    animation-duration: 1.5s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+.studio-rbutton-inner {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    border-radius: 50%;
+    width: 120px;
+    height: 120px;
+    border: 0;
+    text-align: center;
+    background: rgb(214, 214, 214);
+}
+
+.studio-rbutton-inner::-moz-focus-inner {
+    border: 0;
+}
+
+.studio-ready .studio-rbutton-inner {
+    background-color: #d8938a;
+}
+
+.studio-ready .studio-rbutton-inner:hover {
+    background-color: #ce8177;
+}
+
+.studio-ready.studio-rec .studio-rbutton-inner {
+    background-color: #d12c17;
+}
+
+.studio-logo {
+    position: relative;
+    top: 6px;
+    width: 80px;
+    height: 80px;
+}
+
+.studio-wordlist {
+    border: 1px solid #909090;
+    margin: 0;
+    padding: 0px;
+
+    display:flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.studio-wordlist li {
+    position:relative;
+    color: #fff;
+    padding: 10px;
+    list-style: none;
+    margin: 5px;
+
+    background: #3399FF;
+}
+
+.studio-wordlist li.studio-wordlist-selected {
+    text-decoration: underline;
+    border: 1px dashed black;
+}
+
+.studio-wordlist li.studio-wordlist-success {
+    background: olivedrab;
+}
+
+.studio-wordlist li.studio-wordlist-waiting {
+    background: #FF3399;
+}
+
+.studio-wordlist li.studio-wordlist-error {
+    background: tomato;
+}
+
+.studio-wordcanvas {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+.hidden {
+    display: none;
+}
+
+@keyframes pulse{
+    0%{
+        box-shadow: 0px 0px 5px 0px rgba(173,0,0,.3);
+    }
+    65%{
+        box-shadow: 0px 0px 5px 13px rgba(173,0,0,.3);
+    }
+    90%{
+        box-shadow: 0px 0px 5px 13px rgba(173,0,0,0);
+    }
+}
+
+/* Dynamic */
+
+.studio-wordlist input {
+    position:relative;
+    color: #fff;
+    padding: 10px;
+    margin: 5px;
+
+    background: rgba(51, 153, 255, 0.5);
+    border: 0;
+}
+
+/* RTL */
+.studio.rtl {
+    direction: rtl;
+}
+
+/* Mini */
+.mini.studio {
+    display: flex;
+    height: 150px;
+}
+.mini .studio-head {
+    position: static;
+    width: auto;
+}
+
+.mini .studio-rbutton {
+    position: relative;
+    top: 0px;
+    left: 0px;
+}
+
+.mini .studio-wordlist {
+    position: relative;
+}
+
+/* Micro */
+
+.micro.studio {
+    display: flex;
+}
+
+.micro .studio-head {
+    position: static;
+    height: auto;
+    width: auto;
+}
+.micro .studio-rbutton {
+    position: static;
+    top: 0px;
+    left: 0px;
+    font-size: 0;
+    border: 0;
+    border-radius: 35px;
+    margin-right: 10px;
+    outline: none;
+    background-color: rgb(214, 214, 214);
+    height: 35px;
+    width: 35px;
+}
+
+
+.micro .studio-ready .studio-rbutton {
+    background-color: darkred;
+}
+
+.micro .studio-rec .studio-rbutton {
+    background-color: red;
+    border: 0;
+}
+
+.micro .studio-wordlist {
+    position: relative;
+
+    display:flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: scroll;
+}
