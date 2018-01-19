@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Swac Recorder JS</title>
+		<meta charset="utf-8"/>
+		<base href="../"/>
+
+        <script type="text/javascript" src="js/jquery-3.2.1.js"></script>
+
+		<script type="text/javascript" src="js/recorder/AudioRecord.js"></script>
+		<script type="text/javascript" src="js/recorder/Recorder.js"></script>
+		<script type="text/javascript" src="js/recorder/Studio.js"></script>
+		<script type="text/javascript" src="js/recorder/WordListStudio.js"></script>
+
+		<style>
+		    .studio {
+		        max-width: 800px;
+		        border: 1px dotted #909090;
+		        margin: 0;
+		        padding: 0;
+		        display: flex;
+		    }
+		    .studio-head {
+		        margin: 0;
+		        padding: 0;
+		        margin: auto;
+		    }
+		    .studio-rbutton {
+	            width: 35px;
+	            height: 35px;
+	            font-size: 0;
+	            border: 0;
+	            border-radius: 35px;
+	            margin-right: 10px;
+	            outline: none;
+	            background-color: rgb(214, 214, 214);
+            }
+            .studio-ready .studio-rbutton {
+	            background-color: darkred;
+            }
+
+		    .studio-rec .studio-rbutton {
+		        background-color: red;
+
+	            animation-name: pulse;
+	            animation-duration: 1.5s;
+	            animation-iteration-count: infinite;
+	            animation-timing-function: linear;
+            }
+
+		    .studio-logo {
+		        position: relative;
+		        top: 6px;
+		        width: 80px;
+		        height: 80px;
+		    }
+
+            .studio-wordlist {
+                position: relative;
+		        border: 1px solid #909090;
+		        margin: 0;
+		        padding: 0px;
+
+                display:flex;
+                flex-direction: row;
+		        overflow-x: scroll;
+            }
+
+            .studio-wordlist li {
+		        position:relative;
+                color: #fff;
+                padding: 10px;
+                list-style: none;
+                margin: 5px;
+
+                background: #3399FF;
+            }
+
+            .studio-wordlist li.studio-wordlist-selected {
+                text-decoration: underline;
+		        border: 1px dashed black;
+            }
+
+            .studio-wordlist li.studio-wordlist-success {
+                background: olivedrab;
+            }
+
+            .studio-wordlist li.studio-wordlist-waiting {
+                background: #FF3399;
+            }
+
+            .studio-wordlist li.studio-wordlist-error {
+                background: tomato;
+            }
+
+            .studio-wordcanvas {
+		        position: absolute;
+		        top: 0px;
+		        left: 0px;
+            }
+
+            .hidden {
+                display: none;
+            }
+
+            @keyframes pulse{
+	            0%{
+		            box-shadow: 0px 0px 5px 0px rgba(173,0,0,.3);
+	            }
+	            65%{
+		            box-shadow: 0px 0px 5px 13px rgba(173,0,0,.3);
+	            }
+	            90%{
+		            box-shadow: 0px 0px 5px 13px rgba(173,0,0,0);
+	            }
+            }
+
+            /* Dynamic */
+
+            .studio-wordlist input {
+		        position:relative;
+                color: #fff;
+                padding: 10px;
+                margin: 5px;
+
+                background: rgba(51, 153, 255, 0.5);
+                border: 0;
+            }
+
+            /* Mini */
+
+
+		</style>
+		<script type="text/javascript">
+		    'use strict';
+		    $( function() {
+		        window.wordListStudio = new WordListStudio( { $element: $( '#wordliststudio' ) } );
+
+		        $( '.studio-wordlist input' ).keypress( function( e ) {
+                    if ( ( e.which === 13 || e.which === 32 ) && $( '.studio-wordlist input' ).val().trim() !== '' ) {
+                        $( '.studio-wordlist input' ).before( $( '<li>' ).text( $( '.studio-wordlist input' ).val().trim() ) );
+                        $( '.studio-wordlist input' ).val( '' );
+                        wordListStudio.setWordsEvents();
+
+                        $( '.studio-wordlist' ).animate( { scrollLeft: $( '.studio-wordlist' ).prop( 'scrollWidth' ) - $( '.studio-wordlist' ).width() }, 100 );
+                    }
+                } );
+		    } );
+		</script>
+	</head>
+	<body>
+	    <div id="wordliststudio" class="studio">
+	        <div class="studio-head">
+	            <canvas class="studio-canvas hidden" width="0" height="0"></canvas>
+	            <button class="studio-rbutton">
+	            </button>
+	        </div>
+	        <ul class="studio-wordlist">
+                <li>Picon</li>
+                <li>Melfor</li>
+                <li>Carola</li>
+                <li>Flammekueche</li>
+                <li>Wurscht</li>
+                <li>Christkindelsmärik</li>
+                <li>Dahlias</li>
+                <li>Racing</li>
+                <li>bibalaekaess</li>
+                <li>baeckeoffe</li>
+                <li>mänele</li>
+                <input placeholder="Ajouter un mot">
+	        </ul>
+            <canvas class="studio-wordcanvas hidden"></canvas>
+	    </div>
+	</body>
+</html>
