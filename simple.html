@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Swac Recorder JS</title>
+		<meta charset="utf-8"/>
+		<link href="css/style.css" type="text/css" rel="stylesheet"/>
+		<base href="../"/>
+
+        <script
+			src="https://code.jquery.com/jquery-3.2.1.js"
+			integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
+			crossorigin="anonymous"></script>
+
+		<script type="text/javascript" src="js/legacy/swac-recorder/buffer.js"></script>
+		<script type="text/javascript" src="js/legacy/swac-recorder/buffers.js"></script>
+		<script type="text/javascript" src="js/legacy/swac-recorder/player.js"></script>
+		<script type="text/javascript" src="js/recorder/recorder.js"></script>
+
+		<script type="text/javascript">
+		    $( function() {
+		        var recorder = new Recorder();
+		        recorder.on( 'ready', function() {
+                    $( '#waiting' ).hide();
+                    $( '#success' ).show();
+		        } );
+		        recorder.on( 'readyFail', function() {
+                    $( '#waiting' ).hide();
+                    $( '#failed' ).show();
+		        } );
+		        recorder.on( 'started', function() {
+		            $( '#recorder-start' ).attr( 'disabled', true );
+		            $( '#recorder-pause' ).attr( 'disabled', false );
+		            $( '#recorder-stop' ).attr( 'disabled', false );
+		            $( '#recorder-play' ).attr( 'disabled', true );
+		        } );
+		        recorder.on( 'paused', function() {
+		            $( '#recorder-start' ).attr( 'disabled', false );
+		            $( '#recorder-pause' ).attr( 'disabled', true );
+		        } );
+		        recorder.on( 'stoped', function() {
+		            $( '#recorder-start' ).attr( 'disabled', false );
+		            $( '#recorder-pause' ).attr( 'disabled', true );
+		            $( '#recorder-stop' ).attr( 'disabled', true );
+		            $( '#recorder-play' ).attr( 'disabled', false );
+		        } );
+
+		        $( '#recorder-start' ).click( function() { recorder.start(); } );
+		        $( '#recorder-stop' ).click( function() { recorder.stop(); } );
+		        $( '#recorder-pause' ).click( function() { recorder.pause(); } );
+		        $( '#recorder-play' ).click( function() {
+                    var player = new Player(recorder.buffers);
+                    player.createArrayBuffer();
+                    player.play();
+		        } );
+		    } );
+		</script>
+	</head>
+	<body>
+	    <div id="waiting">
+	        Waiting for authorisation to access to microphone.
+	    </div>
+	    <div id="failed" style="display: none;">
+	        Failed to access the microphone.
+	    </div>
+	    <div id="success" style="display: none;">
+	        <button type="button" id="recorder-start">Start</button>
+	        <button type="button" id="recorder-pause" disabled="disabled">Pause</button>
+	        <button type="button" id="recorder-stop" disabled="disabled">Stop</button>
+	        <button type="button" id="recorder-play" disabled="disabled">Play</button>
+	    </div>
+	</body>
+</html>
