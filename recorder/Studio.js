@@ -20,6 +20,7 @@ var Studio = function( config ) {
 	config = config || {};
 
     this.$element = config.$element;
+    this.animate = typeof config.animate !== 'undefined' ? config.animate : true;
 
     this.recorder = new Recorder( config.recorder );
 
@@ -53,11 +54,13 @@ Studio.prototype.onReady = function() {
 
     this.recorder.connectAudioNode( this.analyser );
 
-    this.$element.find( '.studio-rbutton-inner' ).click( this.onRecordingButtonClick.bind( this ) );
+    this.$element.find( '.studio-rbutton' ).click( this.onRecordingButtonClick.bind( this ) );
 
     this.$element.find( '.studio-head' ).addClass( 'studio-ready' );
 
-    requestAnimationFrame(this.draw.bind(this));
+    if ( this.animate ) {
+        requestAnimationFrame(this.draw.bind(this));
+    }
 };
 
 Studio.prototype.onStart = function() {

@@ -5,6 +5,8 @@
  - Propriser
  - Documenter
  - Allow on-the-fly word addition
+ - todo: autoscroll
+ - max-size
 */
 
 var WordListStudio = function( config ) {
@@ -12,11 +14,12 @@ var WordListStudio = function( config ) {
 	config.recorder = { 'autoStart': true, 'autoStop': true, 'onSaturate': 'discard' };
     Studio.call( this, config );
 
-    var studio = this;
     this.currentWord = { text: null, index: null, $word: null };
     this.amplitudeCanvas = this.$element.find( '.studio-wordcanvas' ).detach().removeClass( 'hidden' )[ 0 ];
     this.amplitudeCtx = this.amplitudeCanvas.getContext('2d');
+    this.amplitudeCtx.save();
     this.amplitudeValues = [];
+    this.records = [];
 
     // Initialise the word list
     config.words = config.words || [];
@@ -25,10 +28,7 @@ var WordListStudio = function( config ) {
         $wordListElement.append( $( '<li>' ).text( config.words[ i ] ) );
     }
 
-    // Switch to the selected word when the user clicks on an item
-    this.$element.find( '.studio-wordlist li' ).click( function() {
-        studio.setCurrentWord( $( this ) );
-    } );
+    this.setWordsEvents();
 
     // Select
     if ( $wordListElement.find( 'li' ).length > 0 ) {
@@ -38,14 +38,36 @@ var WordListStudio = function( config ) {
 $.extend( WordListStudio.prototype, Studio.prototype )
 
 
+WordListStudio.prototype.setWordsEvents = function() {
+    var studio = this;
+
+    // Remove possible existing events
+    this.$element.find( '.studio-wordlist li' ).off( 'click' );
+
+    // When the user clicks on an item
+    this.$element.find( '.studio-wordlist li' ).click( function() {
+        // Switch to the selected word
+        studio.setCurrentWord( $( this ) );
+
+        // Play it if it has already been recorded
+        studio.playCurrent();
+    } );
+}
+
+
 WordListStudio.prototype.onStart = function() {
     Studio.prototype.onStart.call( this );
 
-    requestAnimationFrame( this.drawAmplitude.bind( this ) );
+    if ( this.animate ) {
+        requestAnimationFrame( this.drawAmplitude.bind( this ) );
+    }
 };
 
-WordListStudio.prototype.onStop = function() {
+WordListStudio.prototype.onStop = function( audioRecord ) {
     Studio.prototype.onStop.call( this );
+
+    // Store localy the audioRecord
+    var soundId = this.records.push( audioRecord ) - 1;
 
     // Send the record to the API
     var $word = this.currentWord.$word;
@@ -54,6 +76,7 @@ WordListStudio.prototype.onStop = function() {
     setTimeout( function() {
         $word.removeClass( 'studio-wordlist-waiting' );
         $word.addClass( 'studio-wordlist-success' );
+        $word.attr( 'sound-id', soundId );
     }, 1500 );
 
     // Clear the Amplitude chart
@@ -127,6 +150,9 @@ WordListStudio.prototype.setCurrentWord = function( $word ) {
 
     $word.addClass( 'studio-wordlist-selected' );
 
+    $( '.studio-wordlist' ).animate( { scrollTop: $( '.studio-wordlist' ).scrollTop() + $word.position().top }, 100 );
+    $( '.studio-wordlist' ).animate( { scrollLeft: $( '.studio-wordlist' ).scrollLeft() + $word.position().left }, 100 );
+
     this.amplitudeValues = [];
     $word.prepend( this.amplitudeCanvas );
     this.amplitudeCanvas.width = $word.outerWidth();
@@ -139,6 +165,12 @@ WordListStudio.prototype.setCurrentWord = function( $word ) {
 WordListStudio.prototype.drawAmplitude = function() {
     if ( ! this.isRecording ) {
         return;
+    }
+
+    // Flip the graph if we're using a rtl language
+    if ( this.currentWord.$word.css('direction') === 'rtl' ) {
+        this.amplitudeCtx.resetTransform();
+        this.amplitudeCtx.transform(-1, 0, 0, 1, this.amplitudeCanvas.width, 0);
     }
 
     // Clear the current content of the canvas
@@ -166,3 +198,14 @@ WordListStudio.prototype.onRecordingButtonClick = function() {
         this.$element.find( '.studio-head' ).addClass( 'studio-rec' );
     }
 };
+
+WordListStudio.prototype.playCurrent = function() {
+    if ( this.recorder.getState() === 'listen' ) {
+        return;
+    }
+
+    var soundId = this.currentWord.$word.attr( 'sound-id' );
+    if ( soundId !== undefined ) {
+        this.records[ parseInt( soundId ) ].play();
+    }
+}

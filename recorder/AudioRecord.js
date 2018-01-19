@@ -6,7 +6,6 @@
    - this.wavFile
    - this.downloadLink
    - this.Html5AudioDomElement
-   - play
  - Documenter
 */
 
@@ -101,4 +100,26 @@ AudioRecord.prototype.clear = function() {
     this.length = 0;
 	this.sampleBlocs = [];
 };
+
+AudioRecord.prototype.play = function() {
+    console.log('play')
+    var audioContext = new window.AudioContext();
+
+    var buffer = audioContext.createBuffer(1, this.length, 48000); //samplerate
+	var channelData = buffer.getChannelData(0);
+	var nbBlocs = this.sampleBlocs.length
+	for ( var i = 0, t = 0; i < nbBlocs; i++ ) {
+	    var nbSamples = this.sampleBlocs[ i ].length;
+	    for ( var j = 0; j < nbSamples; j++ ) {
+		    channelData[t++] = this.sampleBlocs[ i ][ j ];
+	    }
+	}
+
+	var source = audioContext.createBufferSource();
+	source.buffer = buffer;
+	source.connect( audioContext.destination );
+	source.start();
+};
+
+
 
