@@ -22,7 +22,7 @@ var Studio = function( config ) {
     this.$element = config.$element;
     this.animate = typeof config.animate !== 'undefined' ? config.animate : true;
 
-    this.recorder = new Recorder( config.recorder );
+    this.recorder = new LinguaRecorder( config.recorder );
 
     this.isRecording = false;
     this.isReady = false;

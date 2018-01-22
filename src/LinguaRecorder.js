@@ -31,7 +31,7 @@ TODO
  * @cfg {number} [marginAfter=0.25] Duration value in seconds. Only used if autoStop is set to true.
  * @cfg {number} [minDuration=0.15] Duration value in seconds. Discard the record if it last less than minDuration. Default value to 0.15, use 0 to disable.
  */
-var Recorder = function( config ) {
+var LinguaRecorder = function( config ) {
 	// Configuration initialization
 	config = config || {};
 
@@ -86,7 +86,7 @@ var Recorder = function( config ) {
  *
  * @return {number} The duration in seconds
  */
-Recorder.prototype.getRecordingTime = function() {
+LinguaRecorder.prototype.getRecordingTime = function() {
     return this._audioRecord.getDuration();
 };
 
@@ -96,7 +96,7 @@ Recorder.prototype.getRecordingTime = function() {
  *
  * @return {string} One of the following: 'stop', 'listening', 'recording', 'paused'
  */
-Recorder.prototype.getState = function() {
+LinguaRecorder.prototype.getState = function() {
     return this._state;
 };
 
@@ -108,7 +108,7 @@ Recorder.prototype.getState = function() {
  *
  * @return {string} One of the following: 'stop', 'listening', 'recording', 'paused'
  */
-Recorder.prototype.getAudioContext = function() {
+LinguaRecorder.prototype.getAudioContext = function() {
     return this.audioContext;
 };
 
@@ -121,7 +121,7 @@ Recorder.prototype.getAudioContext = function() {
  *
  * @return {boolean} Has the record being started or not.
  */
-Recorder.prototype.start = function() {
+LinguaRecorder.prototype.start = function() {
 	if ( this.audioContext === undefined || this._state in [ STATE.listening, STATE.recording ] ) {
 	    return false;
 	}
@@ -158,7 +158,7 @@ Recorder.prototype.start = function() {
  * @param {boolean} [cancelRecord=false] Used to cancel a record. If set to true, discard the record in any cases.
  * @return {boolean} Has the record being paused or not.
  */
-Recorder.prototype.pause = function() {
+LinguaRecorder.prototype.pause = function() {
     if ( this._state !== STATE.recording ) {
         return false;
     }
@@ -187,7 +187,7 @@ Recorder.prototype.pause = function() {
  * @param {boolean} [cancelRecord=false] Used to cancel a record. If set to true, discard the record in any cases.
  * @return {boolean} Has the record being stopped or not.
  */
-Recorder.prototype.stop = function( cancelRecord ) {
+LinguaRecorder.prototype.stop = function( cancelRecord ) {
     var cancelRecord = false || cancelRecord;
 
     if ( this._state === STATE.stop ) {
@@ -221,7 +221,7 @@ Recorder.prototype.stop = function( cancelRecord ) {
 /**
  * Stop a recording, but without saving the record.
  */
-Recorder.prototype.cancel = function() {
+LinguaRecorder.prototype.cancel = function() {
     return this.stop( true );
 };
 
@@ -229,7 +229,7 @@ Recorder.prototype.cancel = function() {
 /**
  * Toggle between the recording and stopped state.
  */
-Recorder.prototype.toggle = function() {
+LinguaRecorder.prototype.toggle = function() {
 	if ( this._state in [ STATE.recording, STATE.listening ] ) {
 		this.stop();
 	}
@@ -246,7 +246,7 @@ Recorder.prototype.toggle = function() {
  * @param {function} [handler] A function to execute when the event is triggered.
  * @chainable
  */
-Recorder.prototype.on = function( event, handler ) {
+LinguaRecorder.prototype.on = function( event, handler ) {
 	if ( event in this._eventHandlers ) {
 		this._eventHandlers[ event ].push( handler );
 	}
@@ -266,7 +266,7 @@ Recorder.prototype.on = function( event, handler ) {
  * @param {string} [event] Name of an event.
  * @chainable
  */
-Recorder.prototype.off = function( event ) {
+LinguaRecorder.prototype.off = function( event ) {
 	if ( event in this._eventHandlers ) {
 		this._eventHandlers[ event ] = [];
 	}
@@ -287,7 +287,7 @@ Recorder.prototype.off = function( event ) {
  * @param {AudioNode} [node] Node to connect inside the recording context.
  * @chainable
  */
-Recorder.prototype.connectAudioNode = function( node ) {
+LinguaRecorder.prototype.connectAudioNode = function( node ) {
     if ( this._state in [ STATE.listening, STATE.recording ] ) {
         this._disconnect();
     }
@@ -308,7 +308,7 @@ Recorder.prototype.connectAudioNode = function( node ) {
  * @param {AudioNode} [node] Node to connect inside the recording context.
  * @chainable
  */
-Recorder.prototype.disconnectAudioNode = function( node ) {
+LinguaRecorder.prototype.disconnectAudioNode = function( node ) {
     for ( var i = 0; i < this._extraAudioNodes.length; i++ ) {
         if ( node === this._extraAudioNodes[ i ] ) {
             if ( this._state in [ STATE.listening, STATE.recording ] ) {
@@ -336,7 +336,7 @@ Recorder.prototype.disconnectAudioNode = function( node ) {
  * @return {Object|Array|string|undefined} [value] Bounds if valid.
  * @private
  */
-Recorder.prototype._fire = function( event, value ) {
+LinguaRecorder.prototype._fire = function( event, value ) {
 	if ( event in this._eventHandlers ) {
 		for ( var i=0; i<this._eventHandlers[ event ].length; i++ ) {
 			this._eventHandlers[ event ][ i ]( value );
@@ -350,7 +350,7 @@ Recorder.prototype._fire = function( event, value ) {
 
 
 /**
- * First step to initialise the Recorder object. Try to get a MediaStream object
+ * First step to initialise the LinguaRecorder object. Try to get a MediaStream object
  * with tracks containing an audio input from the microphone of the user.
  *
  * Note that it will prompt a notification requesting permission from the user.
@@ -360,7 +360,7 @@ Recorder.prototype._fire = function( event, value ) {
  *
  * @private
  */
-Recorder.prototype._getAudioStream = function() {
+LinguaRecorder.prototype._getAudioStream = function() {
 	var recorder = this;
 
 	// Current best practice to get the audio stream according to the specs
@@ -407,7 +407,7 @@ Recorder.prototype._getAudioStream = function() {
  *
  * @private
  */
-Recorder.prototype._initStream = function() {
+LinguaRecorder.prototype._initStream = function() {
 	var recorder = this;
 
     this.audioContext = new window.AudioContext();
@@ -434,7 +434,7 @@ Recorder.prototype._initStream = function() {
  *
  * @private
  */
-Recorder.prototype._connect = function() {
+LinguaRecorder.prototype._connect = function() {
     var processor;
     if ( this._state === STATE.listening ) {
         processor = this.listeningProcessor;
@@ -459,7 +459,7 @@ Recorder.prototype._connect = function() {
  *
  * @private
  */
-Recorder.prototype._disconnect = function() {
+LinguaRecorder.prototype._disconnect = function() {
 	this.audioInput.disconnect();
 	for ( var i=0; i < this._extraAudioNodes.length; i++ ) {
         this._extraAudioNodes[ i ].disconnect();
@@ -477,7 +477,7 @@ Recorder.prototype._disconnect = function() {
  *
  * @private
  */
-Recorder.prototype._audioListeningProcess = function( e ) {
+LinguaRecorder.prototype._audioListeningProcess = function( e ) {
     // Discard extra samples if the recording has already been paused or stopped
 	if ( this._state in [ STATE.stop, STATE.paused ] ) {
 	    return;
@@ -518,7 +518,7 @@ Recorder.prototype._audioListeningProcess = function( e ) {
  *
  * @private
  */
-Recorder.prototype._audioRecordingProcess = function( e ) {
+LinguaRecorder.prototype._audioRecordingProcess = function( e ) {
     // Discard extra samples if the recording has already been paused or stopped
 	if ( this._state in [ STATE.stop, STATE.paused ] ) {
 	    return;
