@@ -2,9 +2,6 @@
 
 /*
  TODO
- - ajouter
-   - this.downloadLink
-   - this.Html5AudioDomElement
  - Documenter
 */
 
@@ -163,9 +160,13 @@ AudioRecord.prototype.getWAVE = function() {
 	return this.getBlob();
 };
 
+AudioRecord.prototype.getObjectURL = function () {
+	return window.URL.createObjectURL( this.getBlob() );
+};
+
 AudioRecord.prototype.download = function ( fileName ) {
 	var a = document.createElement( 'a' ),
-		url = window.URL.createObjectURL( this.getBlob() );
+		url = this.getObjectURL();
 
     fileName = fileName || 'record.wav';
     if ( fileName.toLowerCase().indexOf( '.wav', fileName.length - 4 ) === -1 ) {
@@ -181,6 +182,16 @@ AudioRecord.prototype.download = function ( fileName ) {
 
 	window.URL.revokeObjectURL( url );
 	document.body.removeChild( a );
+};
+
+AudioRecord.prototype.getDomAudioElement = function () {
+	var audio = document.createElement( 'audio' ),
+	    source = document.createElement( 'source' );
+
+    source.src = this.getObjectURL();
+    source.type = 'audio/wav';
+    audio.appendChild( source );
+    return audio;
 };
 
 
