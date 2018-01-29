@@ -1,17 +1,26 @@
 'use strict';
 
-/*
- TODO
- - Documenter
-*/
 
-
+/**
+ * AudioRecord
+ *
+ * @constructor
+ * @param {number} [sampleRate] Rate at witch the samples added to this object should be played
+ */
 var AudioRecord = function( sampleRate ) {
 	this.sampleRate = sampleRate;
 	this.sampleBlocs = [];
 	this.length = 0;
 };
 
+
+/**
+ * Add some raw samples to the record.
+ *
+ * @param {Float32Array} [samples] samples to append to the record
+ * @param {number} [rollingDuration] if set, last number of seconds of the record to keep after adding the new samples
+ * @return {number} the new total number of samples stored.
+ */
 AudioRecord.prototype.push = function( samples, rollingDuration ) {
 	this.length += samples.length;
 	this.sampleBlocs.push( samples );
@@ -26,22 +35,54 @@ AudioRecord.prototype.push = function( samples, rollingDuration ) {
 	return this.length;
 };
 
+
+/**
+ * Change the sample rate.
+ *
+ * @param {number} [value] new sample rate to set.
+ */
 AudioRecord.prototype.setSampleRate = function( value ) {
 	this.sampleRate = value;
 };
 
+
+/**
+ * Get the sample rate in use.
+ *
+ * @return {number} Current sample rate for the record.
+ */
 AudioRecord.prototype.getSampleRate = function() {
 	return this.sampleRate;
 };
 
+
+/**
+ * Get the total number of samples in the record.
+ *
+ * @return {number} number of samples.
+ */
 AudioRecord.prototype.getLength = function() {
 	return this.length;
 };
 
+
+/**
+ * Get the duration of the record.
+ *
+ * This is based on the number of samples and the declared sample rate.
+ *
+ * @return {number} duration (in seconds) of the record.
+ */
 AudioRecord.prototype.getDuration = function() {
 	return this.length / this.sampleRate;
 };
 
+
+/**
+ * Get all the raw samples that make up the record.
+ *
+ * @return {Float32Array} list of all samples.
+ */
 AudioRecord.prototype.getSamples = function() {
 	var flattened = new Float32Array( this.length + 575 ),
 		nbBlocs = this.sampleBlocs.length,
@@ -55,6 +96,12 @@ AudioRecord.prototype.getSamples = function() {
 	return flattened;
 };
 
+
+/**
+ * Trim the record, starting with the beginning of the record (the left side).
+ *
+ * @param {number} [duration] duration (in seconds) to trim
+ */
 AudioRecord.prototype.ltrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
@@ -73,6 +120,12 @@ AudioRecord.prototype.ltrim = function( duration ) {
 	}
 };
 
+
+/**
+ * Trim the record, starting with the end of the record (the right side).
+ *
+ * @param {number} [duration] duration (in seconds) to trim
+ */
 AudioRecord.prototype.rtrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
@@ -92,11 +145,19 @@ AudioRecord.prototype.rtrim = function( duration ) {
 	}
 };
 
+
+/**
+ * Clear the record.
+ */
 AudioRecord.prototype.clear = function() {
 	this.length = 0;
 	this.sampleBlocs = [];
 };
 
+
+/**
+ * Play the record to the audio output (aka the user's loudspeaker)
+ */
 AudioRecord.prototype.play = function() {
 	console.log('play')
 	var audioContext = new window.AudioContext();
@@ -117,6 +178,13 @@ AudioRecord.prototype.play = function() {
 	source.start();
 };
 
+
+/**
+ * Get a WAV-encoded Blob version of the record.
+ *
+ * @return {Blob} WAV-encoded audio record.
+ * @alias getWAVE()
+ */
 AudioRecord.prototype.getBlob = function() {
 	var buffer = new ArrayBuffer(44 + this.length * 2);
 	var view = new DataView(buffer);
@@ -156,14 +224,34 @@ AudioRecord.prototype.getBlob = function() {
 	return new Blob( [view], {"type": "audio/wav"} );
 };
 
+
+/**
+ * @alias getBlob()
+ */
 AudioRecord.prototype.getWAVE = function() {
 	return this.getBlob();
 };
 
+
+/**
+ * Generate an object URL representing the WAV-encoded record.
+ *
+ * For performance reasons, you should unload the objectURL once you're
+ * done with it, see
+ * https://developer.mozilla.org/en-US/docs/Web/API/URL/revokeObjectURL
+ *
+ * @return {DOMString} URL representing the record.
+ */
 AudioRecord.prototype.getObjectURL = function () {
 	return window.URL.createObjectURL( this.getBlob() );
 };
 
+
+/**
+ * Start the download process of the record as if it where a normal file.
+ *
+ * @param {String} [fileName='record.wav'] name of the file that will be downloaded
+ */
 AudioRecord.prototype.download = function ( fileName ) {
 	var a = document.createElement( 'a' ),
 		url = this.getObjectURL();
@@ -184,7 +272,13 @@ AudioRecord.prototype.download = function ( fileName ) {
 	document.body.removeChild( a );
 };
 
-AudioRecord.prototype.getDomAudioElement = function () {
+
+/**
+ * Generate an HTML5 <audio> element containing the WAV-encoded record.
+ *
+ * @return {HTMLElement} audio element containing the record.
+ */
+AudioRecord.prototype.getAudioElement = function () {
 	var audio = document.createElement( 'audio' ),
 	    source = document.createElement( 'source' );
 
@@ -195,6 +289,16 @@ AudioRecord.prototype.getDomAudioElement = function () {
 };
 
 
+
+
+/**
+ * Internal helper function used in getBlob to write a complete string at once
+ * in a DataView object.
+ *
+ * @param {DataView} [dataview] DataView in which to write.
+ * @param {number} [offset] Offset at which writing should start.
+ * @param {String} [str] String to write in the DataView.
+ */
 function writeString( dataview, offset, str ) {
 	for ( var i = 0; i < str.length; i++ ){
 		dataview.setUint8( offset + i, str.charCodeAt( i ) );
