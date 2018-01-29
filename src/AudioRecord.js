@@ -122,10 +122,6 @@ AudioRecord.prototype.play = function() {
 };
 
 AudioRecord.prototype.getBlob = function() {
-	return new Blob([this.encodeWAVE()], {"type": "audio/wav"});
-};
-
-AudioRecord.prototype.encodeWAVE = function() {
 	var buffer = new ArrayBuffer(44 + this.length * 2);
 	var view = new DataView(buffer);
 	var samples = this.getSamples();
@@ -161,18 +157,11 @@ AudioRecord.prototype.encodeWAVE = function() {
 		view.setInt16(44 + i * 2, samples[i] * 0x7FFF, true);
 	}
 
-	return view;
+	return new Blob( [view], {"type": "audio/wav"} );
 };
 
-AudioRecord.prototype.debug = function() {
-
-
-    var l = 0;
-    for ( var i = 0; i < this.sampleBlocs.length; ++i ) {
-        l += this.sampleBlocs[i].length;
-    }
-    console.log( l );
-    console.log( this.length );
+AudioRecord.prototype.getWAVE = function() {
+	return this.getBlob();
 };
 
 
