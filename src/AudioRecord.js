@@ -3,7 +3,6 @@
 /*
  TODO
  - ajouter
-   - this.wavFile
    - this.downloadLink
    - this.Html5AudioDomElement
  - Documenter
@@ -17,17 +16,17 @@ var AudioRecord = function( sampleRate ) {
 };
 
 AudioRecord.prototype.push = function( samples, rollingDuration ) {
-    this.length += samples.length;
+	this.length += samples.length;
 	this.sampleBlocs.push( samples );
 
-    if ( rollingDuration !== undefined ) {
-        var duration = this.getDuration();
-        if ( duration > rollingDuration ) {
-            this.ltrim( duration - rollingDuration );
-        }
-    }
+	if ( rollingDuration !== undefined ) {
+		var duration = this.getDuration();
+		if ( duration > rollingDuration ) {
+			this.ltrim( duration - rollingDuration );
+		}
+	}
 
-    return this.length;
+	return this.length;
 };
 
 AudioRecord.prototype.setSampleRate = function( value ) {
@@ -47,14 +46,14 @@ AudioRecord.prototype.getDuration = function() {
 };
 
 AudioRecord.prototype.getSamples = function() {
-    var flattened = new Float32Array( this.length + 575 ),
-        nbBlocs = this.sampleBlocs.length,
-        offset = 0;
+	var flattened = new Float32Array( this.length + 575 ),
+		nbBlocs = this.sampleBlocs.length,
+		offset = 0;
 
-    for ( var i = 0; i < nbBlocs; ++i ) {
-        flattened.set( this.sampleBlocs[ i ], offset );
-        offset += this.sampleBlocs[ i ].length
-    }
+	for ( var i = 0; i < nbBlocs; ++i ) {
+		flattened.set( this.sampleBlocs[ i ], offset );
+		offset += this.sampleBlocs[ i ].length
+	}
 
 	return flattened;
 };
@@ -63,8 +62,8 @@ AudioRecord.prototype.ltrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 	if ( nbSamplesToRemove >= this.length ) {
-	    this.sampleBlocs = [];
-	    return;
+		this.sampleBlocs = [];
+		return;
 	}
 
 	this.length -= nbSamplesToRemove;
@@ -73,16 +72,16 @@ AudioRecord.prototype.ltrim = function( duration ) {
 		this.sampleBlocs.shift();
 	}
 	if ( nbSamplesToRemove > 0 ) {
-	    this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( 0, this.sampleBlocs[ 0 ].length - nbSamplesToRemove );
-    }
+		this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( 0, this.sampleBlocs[ 0 ].length - nbSamplesToRemove );
+	}
 };
 
 AudioRecord.prototype.rtrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 	if ( nbSamplesToRemove >= this.length ) {
-	    this.sampleBlocs = [];
-	    return;
+		this.sampleBlocs = [];
+		return;
 	}
 
 	this.length -= nbSamplesToRemove;
@@ -91,28 +90,28 @@ AudioRecord.prototype.rtrim = function( duration ) {
 		this.sampleBlocs.pop();
 	}
 	if ( nbSamplesToRemove > 0 ) {
-	    var lastIndex = this.sampleBlocs.length - 1;
-	    this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( nbSamplesToRemove );
-    }
+		var lastIndex = this.sampleBlocs.length - 1;
+		this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( nbSamplesToRemove );
+	}
 };
 
 AudioRecord.prototype.clear = function() {
-    this.length = 0;
+	this.length = 0;
 	this.sampleBlocs = [];
 };
 
 AudioRecord.prototype.play = function() {
-    console.log('play')
-    var audioContext = new window.AudioContext();
+	console.log('play')
+	var audioContext = new window.AudioContext();
 
-    var buffer = audioContext.createBuffer(1, this.length, 48000); //samplerate
+	var buffer = audioContext.createBuffer(1, this.length, 48000); //samplerate
 	var channelData = buffer.getChannelData(0);
 	var nbBlocs = this.sampleBlocs.length
 	for ( var i = 0, t = 0; i < nbBlocs; i++ ) {
-	    var nbSamples = this.sampleBlocs[ i ].length;
-	    for ( var j = 0; j < nbSamples; j++ ) {
-		    channelData[t++] = this.sampleBlocs[ i ][ j ];
-	    }
+		var nbSamples = this.sampleBlocs[ i ].length;
+		for ( var j = 0; j < nbSamples; j++ ) {
+			channelData[t++] = this.sampleBlocs[ i ][ j ];
+		}
 	}
 
 	var source = audioContext.createBufferSource();
@@ -162,6 +161,26 @@ AudioRecord.prototype.getBlob = function() {
 
 AudioRecord.prototype.getWAVE = function() {
 	return this.getBlob();
+};
+
+AudioRecord.prototype.download = function ( fileName ) {
+	var a = document.createElement( 'a' ),
+		url = window.URL.createObjectURL( this.getBlob() );
+
+    fileName = fileName || 'record.wav';
+    if ( fileName.toLowerCase().indexOf( '.wav', fileName.length - 4 ) === -1 ) {
+        fileName += '.wav';
+    }
+
+	a.style = "display: none";
+	a.href = url;
+	a.download = fileName;
+
+	document.body.appendChild( a );
+	a.click();
+
+	window.URL.revokeObjectURL( url );
+	document.body.removeChild( a );
 };
 
 
