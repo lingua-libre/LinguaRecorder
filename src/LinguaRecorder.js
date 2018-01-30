@@ -19,7 +19,7 @@ TODO
  * @constructor
  * @param {Object} [config] Configuration options
  * @cfg {boolean} [autoStart=false] Set to true to wait for voice detection when calling the start() method.
- * @cfg {boolean} [autoStop=false] Set to true to stop the record when there is a silence
+ * @cfg {boolean} [autoStop=false] Set to true to stop the record when there is a silence.
  * @cfg {number} [bufferSize=4096] Set the size of the samples buffers. Could be 0 (let the browser choose the best one) or one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384; the less the more precise, the higher the more efficient.
  * @cfg {number} [timeLimit=0] Maximum time (in seconds) after which it is necessary to stop recording. Set to 0 (default) for no time limit.
  * @cfg {string} [onSaturate='none'] Tell what to do when a record is saturated. Accepted values are 'none' (default), 'cancel' and 'discard'.
@@ -66,7 +66,6 @@ var LinguaRecorder = function( config ) {
 		paused: [],
 		stoped: [],
 		canceled: [],
-		recordReady: [],
 	};
 	this._eventStorage = {
 		ready: null,
@@ -106,7 +105,7 @@ LinguaRecorder.prototype.getState = function() {
  *
  * see https://developer.mozilla.org/fr/docs/Web/API/AudioContext
  *
- * @return {string} One of the following: 'stop', 'listening', 'recording', 'paused'
+ * @return {AudioContext} The AudioContext object used by the recorder.
  */
 LinguaRecorder.prototype.getAudioContext = function() {
     return this.audioContext;
@@ -155,7 +154,6 @@ LinguaRecorder.prototype.start = function() {
  * It is also still possible to stop() or cancel() a record,
  * and you have to do so upstream if you wish to start a new one.
  *
- * @param {boolean} [cancelRecord=false] Used to cancel a record. If set to true, discard the record in any cases.
  * @return {boolean} Has the record being paused or not.
  */
 LinguaRecorder.prototype.pause = function() {
@@ -220,6 +218,8 @@ LinguaRecorder.prototype.stop = function( cancelRecord ) {
 
 /**
  * Stop a recording, but without saving the record.
+ *
+ * @return {boolean} Has the record being stopped or not.
  */
 LinguaRecorder.prototype.cancel = function() {
     return this.stop( true );
@@ -305,7 +305,7 @@ LinguaRecorder.prototype.connectAudioNode = function( node ) {
  * Note that it can produce a little interrupt in the record if you are in
  * listening or recording state.
  *
- * @param {AudioNode} [node] Node to connect inside the recording context.
+ * @param {AudioNode} [node] Node to disconnect from the recording context.
  * @chainable
  */
 LinguaRecorder.prototype.disconnectAudioNode = function( node ) {
