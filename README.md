@@ -27,7 +27,9 @@ Tested in the following browsers/versions:
 * Opera ?
 
 ### Live demos
-The demo folder contain several implementation examples, which can be tested [here](https://dev.lingualibre.fr/demo).
+The [LinguaRecorder sandbox](https://dev.lingualibre.fr/demo/sandbox.html) allows you to get familiar with (hardly) all features of the library, and to play with it's configuration possibilities.
+
+The demo folder contain several other implementation examples.
 
 # Documentation
 
