@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!-- Metadatas -->
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <!-- Site Properties -->
+  <title>LinguaRecorder sandbox</title>
+
+  <!-- Only for styling purpose -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.0.0/semantic.min.css" integrity="sha384-hnH4MScja6boBGTvyjGfCdTONZNLRYd4S8Sur0Er0gqWxBUVY3m0ZrBI+VH+OJQD" crossorigin="anonymous">
+  <style type="text/css">
+    html {
+	    min-width: 100%;
+	  }
+    body {
+	    background: radial-gradient(circle at center top, #555, #222) fixed;
+	    min-width: 100%;
+	    padding-top: 1%;
+    }
+    .ui.segment.no-padding {
+      padding:0;
+    }
+    #canvas {
+	    margin:auto;
+	    display:block;
+    }
+  </style>
+
+  <script src="https://code.jquery.com/jquery-3.0.0.min.js" integrity="sha384-THPy051/pYDQGanwU6poAc/hOdQxjnOEXzbT+OuUAFqNqFjL+4IGLBgCJC3ZOShY" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.0.0/semantic.min.js" integrity="sha384-EbtjyyVQL9CHctvt55YpJa37cd9YKQjhrmAipM8SEk5+CebCjLf06p85AStuKqcG" crossorigin="anonymous"></script>
+  <script>
+      /* Initialise UI */
+      $( function() {
+        $('.ui.checkbox').checkbox();
+        $( '#canvas' )[0].width = $( '#canvas' )[0].parentNode.clientWidth;
+        $( window ).resize( function() {
+            $( '#canvas' )[0].width = $( '#canvas' )[0].parentNode.clientWidth;
+        } );
+      } );
+  </script>
+
+  <!-- Include LinguaRecorder's files -->
+  <script type="text/javascript" src="/src/AudioRecord.js"></script>
+  <script type="text/javascript" src="/src/LinguaRecorder.js"></script>
+
+  <!-- Recorder-related scripts -->
+  <script type="text/javascript" src="js/graph.js"></script>
+  <script type="text/javascript" src="js/sandbox.js"></script>
+</head>
+<body>
+  <div class="ui container piled segments">
+    <div class="ui center aligned segment">
+      <h2 class="ui icon header">
+        <i class="unmute icon"></i>
+        <div class="content">
+          LinguaRecorder sandbox
+          <div class="sub header">Play around with LinguaRecorder's features.</div>
+        </div>
+      </h2>
+    </div>
+    <div class="ui segment no-padding">
+      <canvas id="canvas" height=200 width=900 class="ui middle aligned center aligned fixed-width"></canvas>
+    </div>
+    <div class="ui segment">
+      <div class="ui three column grid">
+        <div class="column">
+          <button class="ui fluid button" id="start"><i class="play icon"></i>Start</button>
+        </div>
+        <div class="column">
+          <button class="ui fluid button" id="pause"><i class="pause icon"></i>Pause</button>
+        </div>
+        <div class="column">
+          <button class="ui fluid button" id="stop"><i class="stop icon"></i>Stop</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui segment">
+      <div class="ui grid">
+        <div class="eight wide column">
+
+          <div class="ui celled relaxed list big" id="sounds">
+          </div>
+
+          <table class="ui celled padded table">
+            <thead>
+              <tr><th class="single line">Event name</th>
+              <th>Count</th>
+            </tr></thead>
+            <tbody>
+              <tr>
+                <td class="single line">ready</td>
+                <td><h2 class="ui center aligned header" id="ready">0</h2></td>
+              </tr>
+              <tr>
+                <td class="single line">readyFail</td>
+                <td><h2 class="ui center aligned header" id="readyfail">0</h2></td>
+              </tr>
+              <tr>
+                <td class="single line">started</td>
+                <td><h2 class="ui center aligned header" id="started">0</h2></td>
+              </tr>
+              <tr>
+                <td class="single line">recording</td>
+                <td><h2 class="ui center aligned header" id="recording">0</h2></td>
+              </tr>
+              <tr>
+                <td class="single line">listening</td>
+                <td><h2 class="ui center aligned header" id="listening">0</h2></td>
+              </tr>
+              <tr>
+                <td class="single line">saturated</td>
+                <td><h2 class="ui center aligned header" id="saturated">0</h2></td>
+              </tr>
+              <tr>
+                <td class="single line">paused</td>
+                <td><h2 class="ui center aligned header" id="paused">0</h2></td>
+              </tr>
+              <tr>
+                <td class="single line">stoped</td>
+                <td><h2 class="ui center aligned header" id="stoped">0</h2></td>
+              </tr>
+              <tr>
+                <td class="single line">canceled</td>
+                <td><h2 class="ui center aligned header" id="canceled">0</h2></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!--<div class="ui black message" id="log">
+            <br/><br/><br/><br/><br/><br/>
+            <br/><br/><br/><br/><br/><br/>
+            <br/><br/><br/><br/><br/><br/>
+            <br/><br/><br/><br/><br/><br/>
+          </div>-->
+
+        </div>
+        <div class="eight wide column">
+          <form class="ui large form">
+            <button type="button" class="ui fluid large teal submit top attached button" id="refresh">Apply new options</button>
+            <div class="ui stacked attached segment">
+
+              <div class="field">
+                <label>Intelligent cutting</label>
+                <div class="fields">
+                  <div class="five wide field">
+                    <div class="ui toggle checkbox">
+                      <input class="hidden" type="checkbox" id="autoStart">
+                      <label>autoStart </label>
+                    </div>
+                  </div>
+                  <div class="five wide field">
+                    <div class="ui toggle checkbox">
+                      <input class="hidden" type="checkbox" id="autoStop">
+                      <label>autoStop </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label>bufferSize</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="bufferSize" id="bufferSize" value="4096"></input>
+                </div>
+              </div>
+              <div class="field">
+                <label>timeLimit</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="timeLimit" id="timeLimit" value="0"></input>
+                </div>
+              </div>
+              <div class="field">
+                <label>onSaturate</label>
+                <select class="ui search dropdown">
+                  <option value="none">none</option>
+                  <option value="cancel">cancel</option>
+                  <option value="discard">discard</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>saturationThreshold</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="saturationThreshold" id="saturationThreshold" value="0.99"></input>
+                </div>
+              </div>
+              <div class="field">
+                <label>startThreshold</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="startThreshold" id="startThreshold" value="0.1"></input>
+                </div>
+              </div>
+              <div class="field">
+                <label>stopThreshold</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="stopThreshold" id="stopThreshold" value="0.05"></input>
+                </div>
+              </div>
+              <div class="field">
+                <label>stopDuration</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="stopDuration" id="stopDuration" value="0.3"></input>
+                </div>
+              </div>
+              <div class="field">
+                <label>marginBefore</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="marginBefore" id="marginBefore" value="0.25"></input>
+                </div>
+              </div>
+              <div class="field">
+                <label>marginAfter</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="marginAfter" id="marginAfter" value="0.25"></input>
+                </div>
+              </div>
+              <div class="field">
+                <label>minDuration</label>
+                <div class="ui left icon input">
+                  <i class="call icon"></i>
+                  <input type="number" name="minDuration" id="minDuration" value="0.15"></input>
+                </div>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+
