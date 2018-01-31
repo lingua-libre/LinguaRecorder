@@ -412,7 +412,8 @@ LinguaRecorder.prototype._initStream = function() {
 
     this._state = STATE.stop;
 
-    this.audioContext = new window.AudioContext();
+    // The 'Webkit' prefix is here to support old Chrome and Opera versions
+    this.audioContext = new (window.AudioContext || window.WebkitAudioContext)();
 	this.audioInput = this.audioContext.createMediaStreamSource( this.stream );
 
 	this.listeningProcessor = this.audioContext.createScriptProcessor( this.bufferSize, 1, 1 );
