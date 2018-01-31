@@ -68,12 +68,15 @@ function addSound( audioRecord ) {
         header = $( '<div class="header">' ),
         playLink = $( '<a href="#">' ),
         playIcon = $( '<i class="volume up icon">' ),
+        audioLink = $( '<a href="#">' ),
+        audioIcon = $( '<i class="volume up icon">' ),
         downloadLink = $( '<a href="#">' ),
         downloadIcon = $( '<i class="download icon">' );
 
     playLink.text( 'play' ).prepend( playIcon );
+    audioLink.text( 'audio' ).prepend( audioIcon );
     downloadLink.text( 'download' ).prepend( downloadIcon );
-    content.append( header ).append( playLink ).append( downloadLink );
+    content.append( header ).append( playLink ).append( audioLink ).append( downloadLink );
     item.append( soundIcon ).append( content );
     $( '#sounds' ).append( item );
 
@@ -84,9 +87,14 @@ function addSound( audioRecord ) {
         e.preventDefault();
         audioRecord.play();
     } );
+    audioLink.click( function( e ) {
+        e.preventDefault();
+        audioRecord.getAudioElement().play();
+    } );
     downloadLink.click( function( e ) {
         e.preventDefault();
         audioRecord.download();
+        console.log( audioRecord.getBlob() );
     } );
 
 };
