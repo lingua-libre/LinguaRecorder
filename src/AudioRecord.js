@@ -256,6 +256,7 @@ AudioRecord.prototype.download = function ( fileName ) {
 	var a = document.createElement( 'a' ),
 		url = this.getObjectURL();
 
+    console.log( url );
     fileName = fileName || 'record.wav';
     if ( fileName.toLowerCase().indexOf( '.wav', fileName.length - 4 ) === -1 ) {
         fileName += '.wav';
@@ -268,8 +269,12 @@ AudioRecord.prototype.download = function ( fileName ) {
 	document.body.appendChild( a );
 	a.click();
 
-	window.URL.revokeObjectURL( url );
-	document.body.removeChild( a );
+	// It seems that old browser take time to take into account the click
+	// So we delay the deletion of the URL to let them enough time to start the download
+    setTimeout( function() {
+	    document.body.removeChild( a );
+	    window.URL.revokeObjectURL( url );
+	}, 1000 );
 };
 
 
