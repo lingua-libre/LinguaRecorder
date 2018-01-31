@@ -121,7 +121,7 @@ LinguaRecorder.prototype.getAudioContext = function() {
  * @return {boolean} Has the record being started or not.
  */
 LinguaRecorder.prototype.start = function() {
-	if ( this.audioContext === undefined || this._state in [ STATE.listening, STATE.recording ] ) {
+	if ( this.audioContext === undefined || this._state === STATE.listening || this._state === STATE.recording ) {
 	    return false;
 	}
 
@@ -230,7 +230,7 @@ LinguaRecorder.prototype.cancel = function() {
  * Toggle between the recording and stopped state.
  */
 LinguaRecorder.prototype.toggle = function() {
-	if ( this._state in [ STATE.recording, STATE.listening ] ) {
+	if ( this._state === STATE.recording || this._state === STATE.listening ) {
 		this.stop();
 	}
 	else {
@@ -288,11 +288,11 @@ LinguaRecorder.prototype.off = function( event ) {
  * @chainable
  */
 LinguaRecorder.prototype.connectAudioNode = function( node ) {
-    if ( this._state in [ STATE.listening, STATE.recording ] ) {
+    if ( this._state === STATE.listening || this._state === STATE.recording ) {
         this._disconnect();
     }
 	this._extraAudioNodes.push( node );
-    if ( this._state in [ STATE.listening, STATE.recording ] ) {
+    if ( this._state === STATE.listening || this._state === STATE.recording ) {
         this._connect();
     }
 	return this;
@@ -311,11 +311,11 @@ LinguaRecorder.prototype.connectAudioNode = function( node ) {
 LinguaRecorder.prototype.disconnectAudioNode = function( node ) {
     for ( var i = 0; i < this._extraAudioNodes.length; i++ ) {
         if ( node === this._extraAudioNodes[ i ] ) {
-            if ( this._state in [ STATE.listening, STATE.recording ] ) {
+            if ( this._state === STATE.listening || this._state === STATE.recording ) {
                 this._disconnect();
             }
             this._extraAudioNodes.splice( i, 1 );
-            if ( this._state in [ STATE.listening, STATE.recording ] ) {
+            if ( this._state === STATE.listening || this._state === STATE.recording ) {
                 this._connect();
             }
             break;
@@ -410,6 +410,8 @@ LinguaRecorder.prototype._getAudioStream = function() {
 LinguaRecorder.prototype._initStream = function() {
 	var recorder = this;
 
+    this._state = STATE.stop;
+
     this.audioContext = new window.AudioContext();
 	this.audioInput = this.audioContext.createMediaStreamSource( this.stream );
 
@@ -479,10 +481,9 @@ LinguaRecorder.prototype._disconnect = function() {
  */
 LinguaRecorder.prototype._audioListeningProcess = function( e ) {
     // Discard extra samples if the recording has already been paused or stopped
-	if ( this._state in [ STATE.stop, STATE.paused ] ) {
+	if ( this._state !== STATE.listening ) {
 	    return;
 	}
-
 	// Get the samples from the input buffer
 	var samples = new Float32Array( e.inputBuffer.getChannelData( 0 ) ); // Copy the samples in a new Float32Array, to avoid memory dealocation
 
@@ -520,7 +521,7 @@ LinguaRecorder.prototype._audioListeningProcess = function( e ) {
  */
 LinguaRecorder.prototype._audioRecordingProcess = function( e ) {
     // Discard extra samples if the recording has already been paused or stopped
-	if ( this._state in [ STATE.stop, STATE.paused ] ) {
+	if ( this._state !== STATE.recording ) {
 	    return;
 	}
 
