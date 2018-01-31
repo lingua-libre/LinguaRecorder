@@ -17,14 +17,15 @@ LinguaRecorder is a fast cross-browser voice recording JS library.
 
 ### Browser Compatibility
 Tested in the following browsers/versions:
-* Firefox ?
-* Chrome ?
-* Firefox for android ?
-* Chrome for android ?
-* Microsoft Edge ?
-* Internet Explorer ?
-* Safari ?
-* Opera ?
+* Firefox 25+
+* Chrome 22+
+* Firefox for android\* 57+
+* Chrome for android\* 63+
+* Microsoft Edge 12+
+* Safari 11+
+* Opera 18+
+
+It may work on older versions of the browsers marked with \*, but it has not been tested.
 
 ### Live demos
 The [LinguaRecorder sandbox](https://dev.lingualibre.fr/demo/sandbox.html) allows you to get familiar with (hardly) all features of the library, and to play with it's configuration possibilities.
