@@ -159,8 +159,7 @@ AudioRecord.prototype.clear = function() {
  * Play the record to the audio output (aka the user's loudspeaker)
  */
 AudioRecord.prototype.play = function() {
-	console.log('play')
-	var audioContext = new window.AudioContext();
+	var audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
 	var buffer = audioContext.createBuffer(1, this.length, 48000); //samplerate
 	var channelData = buffer.getChannelData(0);
@@ -175,7 +174,12 @@ AudioRecord.prototype.play = function() {
 	var source = audioContext.createBufferSource();
 	source.buffer = buffer;
 	source.connect( audioContext.destination );
-	source.start();
+
+	// Include deprecated noteOn to support old versions of Chrome
+	if ( source.start === undefined ) {
+		source.start = source.noteOn;
+	}
+	source.start(0);
 };
 
 
@@ -243,6 +247,10 @@ AudioRecord.prototype.getWAVE = function() {
  * @return {DOMString} URL representing the record.
  */
 AudioRecord.prototype.getObjectURL = function () {
+	// To support chrome 22 (window.URL was added in chrome 23)
+	if ( window.URL === undefined ) {
+		window.URL = window.webkitURL;
+	}
 	return window.URL.createObjectURL( this.getBlob() );
 };
 
@@ -256,13 +264,12 @@ AudioRecord.prototype.download = function ( fileName ) {
 	var a = document.createElement( 'a' ),
 		url = this.getObjectURL();
 
-    console.log( url );
-    fileName = fileName || 'record.wav';
-    if ( fileName.toLowerCase().indexOf( '.wav', fileName.length - 4 ) === -1 ) {
-        fileName += '.wav';
-    }
+	fileName = fileName || 'record.wav';
+	if ( fileName.toLowerCase().indexOf( '.wav', fileName.length - 4 ) === -1 ) {
+		fileName += '.wav';
+	}
 
-	a.style = "display: none";
+	a.style.display = "none";
 	a.href = url;
 	a.download = fileName;
 
@@ -271,9 +278,9 @@ AudioRecord.prototype.download = function ( fileName ) {
 
 	// It seems that old browser take time to take into account the click
 	// So we delay the deletion of the URL to let them enough time to start the download
-    setTimeout( function() {
-	    document.body.removeChild( a );
-	    window.URL.revokeObjectURL( url );
+	setTimeout( function() {
+		document.body.removeChild( a );
+		window.URL.revokeObjectURL( url );
 	}, 1000 );
 };
 
@@ -285,12 +292,12 @@ AudioRecord.prototype.download = function ( fileName ) {
  */
 AudioRecord.prototype.getAudioElement = function () {
 	var audio = document.createElement( 'audio' ),
-	    source = document.createElement( 'source' );
+		source = document.createElement( 'source' );
 
-    source.src = this.getObjectURL();
-    source.type = 'audio/wav';
-    audio.appendChild( source );
-    return audio;
+	source.src = this.getObjectURL();
+	source.type = 'audio/wav';
+	audio.appendChild( source );
+	return audio;
 };
 
 

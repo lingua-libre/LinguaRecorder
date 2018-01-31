@@ -10,7 +10,11 @@ var Graph = function( canvas, analyser ) {
 
     this.setAnalyser( analyser );
 
-    requestAnimationFrame(this.draw.bind(this));
+    // webkit prefix for chrome < 24
+    if ( window.requestAnimationFrame === undefined ) {
+        window.requestAnimationFrame = window.webkitRequestAnimationFrame;
+    }
+    window.requestAnimationFrame(this.draw.bind(this));
 };
 
 
@@ -57,6 +61,6 @@ Graph.prototype.draw = function() {
     }
 
     // Ask the browser to callback this function at its next refresh
-    requestAnimationFrame(this.draw.bind(this));
+    window.requestAnimationFrame(this.draw.bind(this));
 }
 
