@@ -421,15 +421,16 @@ LinguaRecorder.prototype._initStream = function() {
 		this.audioContext.createScriptProcessor = this.audioContext.createJavaScriptNode;
 	}
 
-	this.listeningProcessor = this.audioContext.createScriptProcessor( this.bufferSize, 1, 1 );
-	this.listeningProcessor.onaudioprocess = function( e ) {
-		recorder._audioListeningProcess( e );
+	this.processor = this.audioContext.createScriptProcessor( this.bufferSize, 1, 1 );
+	this.processor.onaudioprocess = function( e ) {
+		if ( recorder._state === STATE.listening ) {
+			recorder._audioListeningProcess( e );
+		}
+		else if ( recorder._state === STATE.recording ) {
+			recorder._audioRecordingProcess( e );
+		}
 	};
-
-	this.recordingProcessor = this.audioContext.createScriptProcessor( this.bufferSize, 1, 1 );
-	this.recordingProcessor.onaudioprocess = function( e ) {
-		recorder._audioRecordingProcess( e );
-	};
+	this.audioInput.connect( this.processor );
 };
 
 
@@ -444,12 +445,6 @@ LinguaRecorder.prototype._initStream = function() {
  */
 LinguaRecorder.prototype._connect = function() {
 	var processor;
-	if ( this._state === STATE.listening ) {
-		processor = this.listeningProcessor;
-	}
-	else {
-		processor = this.recordingProcessor;
-	}
 
 	var currentNode = this.audioInput;
 	for ( var i=0; i < this._extraAudioNodes.length; i++ ) {
@@ -457,8 +452,7 @@ LinguaRecorder.prototype._connect = function() {
 		currentNode = this._extraAudioNodes[ i ];
 	}
 
-	currentNode.connect( processor );
-	processor.connect( this.audioContext.destination );
+	this.processor.connect( this.audioContext.destination );
 }
 
 
@@ -468,12 +462,9 @@ LinguaRecorder.prototype._connect = function() {
  * @private
  */
 LinguaRecorder.prototype._disconnect = function() {
-	this.audioInput.disconnect();
 	for ( var i=0; i < this._extraAudioNodes.length; i++ ) {
 		this._extraAudioNodes[ i ].disconnect();
 	}
-	this.listeningProcessor.disconnect();
-	this.recordingProcessor.disconnect();
 }
 
 
@@ -486,10 +477,6 @@ LinguaRecorder.prototype._disconnect = function() {
  * @private
  */
 LinguaRecorder.prototype._audioListeningProcess = function( e ) {
-	// Discard extra samples if the recording has already been paused or stopped
-	if ( this._state !== STATE.listening ) {
-		return;
-	}
 	// Get the samples from the input buffer
 	var samples = new Float32Array( e.inputBuffer.getChannelData( 0 ) ); // Copy the samples in a new Float32Array, to avoid memory dealocation
 
@@ -498,9 +485,7 @@ LinguaRecorder.prototype._audioListeningProcess = function( e ) {
 		var amplitude = Math.abs( samples[ i ] );
 		if ( amplitude > this.startThreshold ) {
 			// start the record
-			this._disconnect();
 			this._state = STATE.recording;
-			this._connect();
 			this._fire( 'started' );
 			return this._audioRecordingProcess( e );
 		}
@@ -526,11 +511,6 @@ LinguaRecorder.prototype._audioListeningProcess = function( e ) {
  * @private
  */
 LinguaRecorder.prototype._audioRecordingProcess = function( e ) {
-	// Discard extra samples if the recording has already been paused or stopped
-	if ( this._state !== STATE.recording ) {
-		return;
-	}
-
 	// Get the samples from the input buffer
 	var samples = new Float32Array( e.inputBuffer.getChannelData( 0 ) ); // Copy the samples in a new Float32Array, to avoid memory dealocation
 
@@ -582,7 +562,4 @@ LinguaRecorder.prototype._audioRecordingProcess = function( e ) {
 		}
 	}
 };
-
-
-
 
