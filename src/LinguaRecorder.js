@@ -37,19 +37,20 @@ var LinguaRecorder = function( config ) {
 
 	this.stream = null;
 
-	this.autoStart = false || config.autoStart;
-	this.autoStop = false || config.autoStop;
-	this.bufferSize = 4096 || config.bufferSize;
-	this.timeLimit = 0 || config.timeLimit;
-	this.cancelOnSaturate = false || ( config.onSaturate === 'cancel' );
-	this.discardOnSaturate = false || ( config.onSaturate === 'discard' );
-	this.saturationThreshold = 0.99 || config.saturationThreshold;
-	this.startThreshold = 0.1 || config.startThreshold;
-	this.stopThreshold = 0.05 || config.stopThreshold;
-	this.stopDuration = 0.3 || config.stopDuration;
-	this.marginBefore = 0.25 || config.marginBefore;
-	this.marginAfter = 0.25 || config.marginAfter;
-	this.minDuration = 0.15 || config.minDuration;
+	this.autoStart = config.autoStart === true;
+	this.autoStop = config.autoStop === true;
+	this.bufferSize = config.bufferSize || 4096;
+	this.timeLimit = config.timeLimit || 0;
+	this.cancelOnSaturate = config.onSaturate === 'cancel';
+	this.discardOnSaturate = config.onSaturate === 'discard';
+	this.saturationThreshold = config.saturationThreshold || 0.99;
+
+	this.startThreshold = config.startThreshold === undefined ? 0.1 : config.startThreshold;
+	this.stopThreshold = config.stopThreshold === undefined ? 0.05 : config.stopThreshold;
+	this.stopDuration = config.stopDuration === undefined ? 0.3 : config.stopDuration;
+	this.marginBefore = config.marginBefore === undefined ? 0.25 : config.marginBefore;
+	this.marginAfter = config.marginAfter === undefined ? 0.25 : config.marginAfter;
+	this.minDuration = config.minDuration === undefined ? 0.15 : config.minDuration;
 
 	this._state = STATE.stop;
 	this._audioRecord = null;
