@@ -1,6 +1,6 @@
 {
   "name": "lingua-recorder",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A JavaScript library for easy and efficient voice recording tasks.",
   "files": [
     "src"
