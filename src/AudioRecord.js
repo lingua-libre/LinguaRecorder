@@ -222,6 +222,7 @@ AudioRecord.prototype.getBlob = function() {
 	view.setUint32(40, this.length * 2, true);
 
 	for (var i = 0; i < this.length; i++){
+		/* Turn a 0->1 amplitude to 0->0x7FFF (highest number possible in a signed 16bits integer) */
 		view.setInt16(44 + i * 2, samples[i] * 0x7FFF, true);
 	}
 
