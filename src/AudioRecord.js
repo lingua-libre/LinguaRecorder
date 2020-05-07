@@ -1,6 +1,5 @@
 'use strict';
 
-
 /**
  * AudioRecord
  *
@@ -12,6 +11,14 @@ var AudioRecord = function( sampleRate ) {
 	this.sampleBlocs = [];
 	this.length = 0;
 };
+
+/**
+ * Some MIME-type analyzer are just checking if the UTF-8 decoded file
+ * contains the strings "<?php" or "<\x00?\x00". So by banning 4 samples
+ * ("?\x00" ; "\x00?" ; "ph" ; "hp"), we get rid of all problems
+ * see https://phabricator.wikimedia.org/T212584
+ */
+const BANNED_SAMPLES = [ 0x003F, 0x3F00, 0x6870, 0x7068 ];
 
 
 /**
@@ -190,9 +197,10 @@ AudioRecord.prototype.play = function() {
  * @alias getWAVE()
  */
 AudioRecord.prototype.getBlob = function() {
-	var buffer = new ArrayBuffer(44 + this.length * 2);
-	var view = new DataView(buffer);
-	var samples = this.getSamples();
+	var sample,
+		buffer = new ArrayBuffer(44 + this.length * 2),
+		view = new DataView(buffer),
+		samples = this.getSamples();
 
 	/* RIFF identifier */
 	writeString(view, 0, 'RIFF');
@@ -223,7 +231,13 @@ AudioRecord.prototype.getBlob = function() {
 
 	for (var i = 0; i < this.length; i++){
 		/* Turn a 0->1 amplitude to 0->0x7FFF (highest number possible in a signed 16bits integer) */
-		view.setInt16(44 + i * 2, samples[i] * 0x7FFF, true);
+		sample = parseInt( samples[i] * 0x7FFF );
+		/* Get rid of banned samples by incrementing it */
+		if ( BANNED_SAMPLES.indexOf( sample ) > -1 ) {
+			sample++;
+		}
+		/* Append the sample in the data chunck */
+		view.setInt16(44 + i * 2, sample, true);
 	}
 
 	return new Blob( [view], {"type": "audio/wav"} );
