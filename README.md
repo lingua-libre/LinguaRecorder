@@ -28,7 +28,7 @@ Tested in the following browsers/versions:
 It may work on older versions of the browsers marked with \*, but it has not been tested.
 
 ### Live demos
-The [LinguaRecorder sandbox](https://dev.lingualibre.fr/demo/sandbox.html) allows you to get familiar with (hardly) all features of the library, and to play with it's configuration possibilities.
+The LinguaRecorder sandbox ([old]](https://lingualibre.org/demo/sandbox.html)|[last](https://lingua-libre.github.io/LinguaRecorder/demo/sandbox.html)) allows you to get familiar with (hardly) all features of the library, and to play with it's configuration possibilities.
 
 The demo folder contain several other implementation examples.
 
