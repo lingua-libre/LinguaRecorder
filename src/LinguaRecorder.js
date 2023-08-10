@@ -37,25 +37,10 @@ var LinguaRecorder = function( config ) {
 
 	this.stream = null;
 
-	this.autoStart = config.autoStart === true;
-	this.autoStop = config.autoStop === true;
-	this.bufferSize = config.bufferSize || 4096;
-	this.timeLimit = config.timeLimit || 0;
-	this.cancelOnSaturate = config.onSaturate === 'cancel';
-	this.discardOnSaturate = config.onSaturate === 'discard';
-	this.saturationThreshold = config.saturationThreshold || 0.99;
-
-	this.startThreshold = config.startThreshold === undefined ? 0.1 : config.startThreshold;
-	this.stopThreshold = config.stopThreshold === undefined ? 0.05 : config.stopThreshold;
-	this.stopDuration = config.stopDuration === undefined ? 0.3 : config.stopDuration;
-	this.marginBefore = config.marginBefore === undefined ? 0.25 : config.marginBefore;
-	this.marginAfter = config.marginAfter === undefined ? 0.25 : config.marginAfter;
-	this.minDuration = config.minDuration === undefined ? 0.15 : config.minDuration;
+	// TODO: create a setConfig method
+	this.recordProcessorConfig = config;
 
 	this._state = STATE.stop;
-	this._audioRecord = null;
-	this._silenceSamplesCount = 0;
-	this._isSaturated = false;
 
 	this._eventHandlers = {
 		ready: [],
@@ -74,7 +59,6 @@ var LinguaRecorder = function( config ) {
 	};
 	this._extraAudioNodes = [];
 
-
 	this._getAudioStream();
 };
 
@@ -87,6 +71,7 @@ var LinguaRecorder = function( config ) {
  * @return {number} The duration in seconds
  */
 LinguaRecorder.prototype.getRecordingTime = function() {
+	//TODO: update this
 	return this._audioRecord.getDuration();
 };
 
@@ -97,6 +82,7 @@ LinguaRecorder.prototype.getRecordingTime = function() {
  * @return {string} One of the following: 'stop', 'listening', 'recording', 'paused'
  */
 LinguaRecorder.prototype.getState = function() {
+	//TODO: update this
 	return this._state;
 };
 
@@ -119,31 +105,10 @@ LinguaRecorder.prototype.getAudioContext = function() {
  * If autoStart is set to true, enter in listening state and postpone the start
  * of the recording when a voice will be detected.
  *
- * @return {boolean} Has the record being started or not.
+ * @chainable
  */
 LinguaRecorder.prototype.start = function() {
-	if ( this.audioContext === undefined || this._state === STATE.listening || this._state === STATE.recording ) {
-		return false;
-	}
-
-	if ( this._state === STATE.stop ) {
-		this._audioRecord = new AudioRecord( this.audioContext.sampleRate );
-		this._silenceSamplesCount = 0;
-		this._isSaturated = false;
-
-		if ( this.autoStart ) {
-			this._state = STATE.listening;
-			this._connect();
-			return true;
-		}
-	}
-
-	this._state = STATE.recording;
-	this._connect();
-
-	this._fire( 'started' );
-
-	return true;
+	return this._sendCommandToProcessor( 'start' );
 };
 
 
@@ -155,23 +120,10 @@ LinguaRecorder.prototype.start = function() {
  * It is also still possible to stop() or cancel() a record,
  * and you have to do so upstream if you wish to start a new one.
  *
- * @return {boolean} Has the record being paused or not.
+ * @chainable
  */
 LinguaRecorder.prototype.pause = function() {
-	if ( this._state !== STATE.recording ) {
-		return false;
-	}
-
-	this._disconnect();
-	if ( this._state === STATE.listening ) {
-		this._state = STATE.stop;
-	}
-	else {
-		this._state = STATE.paused;
-	}
-
-	this._fire( 'paused' );
-	return true;
+	return this._sendCommandToProcessor( 'pause' );
 };
 
 
@@ -183,60 +135,28 @@ LinguaRecorder.prototype.pause = function() {
  *
  * To start a new record afterwards, just call the start() method again.
  *
- * @param {boolean} [cancelRecord=false] Used to cancel a record. If set to true, discard the record in any cases.
- * @return {boolean} Has the record being stopped or not.
+ * @chainable
  */
 LinguaRecorder.prototype.stop = function( cancelRecord ) {
-	var cancelRecord = false || cancelRecord;
-
-	if ( this._state === STATE.stop ) {
-		return false;
-	}
-
-	if ( this._state !== STATE.paused ) {
-		this._disconnect();
-	}
-	this._state = STATE.stop
-	if ( cancelRecord === true ) {
-		this._audioRecord = null;
-		this._fire( 'canceled', 'asked' );
-	}
-	else if ( ( this.discardOnSaturate || this.cancelOnSaturate ) && this._isSaturated ) {
-		this._audioRecord = null;
-		this._fire( 'canceled', 'saturated' );
-	}
-	else if ( this._audioRecord.getDuration() < this.minDuration ) {
-		this._audioRecord = null;
-		this._fire( 'canceled', 'tooShort' );
-	}
-	else {
-		this._fire( 'stoped', this._audioRecord );
-	}
-
-	return true;
+	return this._sendCommandToProcessor( 'stop' );
 };
 
 
 /**
  * Stop a recording, but without saving the record.
- *
- * @return {boolean} Has the record being stopped or not.
+ * @chainable
  */
 LinguaRecorder.prototype.cancel = function() {
-	return this.stop( true );
+	return this._sendCommandToProcessor( 'cancel' );
 };
 
 
 /**
  * Toggle between the recording and stopped state.
+ * @chainable
  */
 LinguaRecorder.prototype.toggle = function() {
-	if ( this._state === STATE.recording || this._state === STATE.listening ) {
-		this.stop();
-	}
-	else {
-		this.start();
-	}
+	return this._sendCommandToProcessor( 'toggle' );
 };
 
 
@@ -289,6 +209,7 @@ LinguaRecorder.prototype.off = function( event ) {
  * @chainable
  */
 LinguaRecorder.prototype.connectAudioNode = function( node ) {
+	//TODO: update this
 	if ( this._state === STATE.listening || this._state === STATE.recording ) {
 		this._disconnect();
 	}
@@ -310,6 +231,7 @@ LinguaRecorder.prototype.connectAudioNode = function( node ) {
  * @chainable
  */
 LinguaRecorder.prototype.disconnectAudioNode = function( node ) {
+	//TODO: update this
 	for ( var i = 0; i < this._extraAudioNodes.length; i++ ) {
 		if ( node === this._extraAudioNodes[ i ] ) {
 			if ( this._state === STATE.listening || this._state === STATE.recording ) {
@@ -323,6 +245,20 @@ LinguaRecorder.prototype.disconnectAudioNode = function( node ) {
 		}
 	}
 
+	return this;
+};
+
+
+/**
+ * Send a message to the Recording Processor to change it's behaviour.
+ * 
+ * @param {string} [command] Name of the command to send.
+ * @chainable
+ */
+LinguaRecorder.prototype._sendCommandToProcessor = function( command ) {
+	if ( this.processor !== undefined ) {
+		this.processor.port.postMessage( { message: command } );
+	}
 	return this;
 };
 
@@ -417,21 +353,42 @@ LinguaRecorder.prototype._initStream = function() {
 	this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 	this.audioInput = this.audioContext.createMediaStreamSource( this.stream );
 
-	// Workaround to support old versions of Chrome
-	if ( this.audioContext.createScriptProcessor === undefined ) {
-		this.audioContext.createScriptProcessor = this.audioContext.createJavaScriptNode;
-	}
+	this.recordProcessorConfig.sampleRate = this.audioContext.sampleRate;
+	this.audioContext.audioWorklet.addModule('../src/RecordingProcessor.js').then(() => { //TODO: use async/await as support of older browsers is not an issue anymore
+		this.processor = new AudioWorkletNode( this.audioContext, 'recording-processor', { processorOptions: this.recordProcessorConfig } ); //TODO: include a polify for older browsers?
 
-	this.processor = this.audioContext.createScriptProcessor( this.bufferSize, 1, 1 );
-	this.processor.onaudioprocess = function( e ) {
-		if ( recorder._state === STATE.listening ) {
-			recorder._audioListeningProcess( e );
-		}
-		else if ( recorder._state === STATE.recording ) {
-			recorder._audioRecordingProcess( e );
-		}
-	};
-	this.audioInput.connect( this.processor );
+		this.audioInput.connect( this.processor );
+		//this.processor.connect( this.audioContext.destination );
+		
+		this.processor.port.onmessage = (event) => {
+			console.log("LR:", event.data.message)
+			switch (event.data.message) {
+				case 'started':
+					this._fire( 'started' );
+					break;
+				case 'listening':
+					this._fire( 'listening', event.data.samples );
+					break;
+				case 'recording':
+					this._fire( 'recording', event.data.samples );
+					break;
+				case 'saturated':
+					this._fire( 'saturated' );
+					break;
+				case 'paused':
+					this._fire( 'paused' );
+					break;
+				case 'stoped':
+					var audioRecord = new AudioRecord( this.audioContext.sampleRate )
+					audioRecord.push( event.data.record )
+					this._fire( 'stoped', audioRecord );
+					break;
+				case 'canceled':
+					this._fire( 'canceled', event.data.reason );
+					break;
+			}
+		};
+	} );
 };
 
 
@@ -445,6 +402,7 @@ LinguaRecorder.prototype._initStream = function() {
  * @private
  */
 LinguaRecorder.prototype._connect = function() {
+	//TODO: update this
 	var processor;
 
 	var currentNode = this.audioInput;
@@ -452,8 +410,6 @@ LinguaRecorder.prototype._connect = function() {
 		currentNode.connect( this._extraAudioNodes[ i ] );
 		currentNode = this._extraAudioNodes[ i ];
 	}
-
-	this.processor.connect( this.audioContext.destination );
 }
 
 
@@ -463,104 +419,12 @@ LinguaRecorder.prototype._connect = function() {
  * @private
  */
 LinguaRecorder.prototype._disconnect = function() {
+	//TODO: update this
 	for ( var i=0; i < this._extraAudioNodes.length; i++ ) {
 		this._extraAudioNodes[ i ].disconnect();
 	}
 }
 
 
-/**
- * Event handler for the listening ScriptProcessorNode.
- *
- * Check whether it can auto-start recording, or store
- * the last marginBefore seconds incomming from the microphone.
- *
- * @private
- */
-LinguaRecorder.prototype._audioListeningProcess = function( e ) {
-	// Get the samples from the input buffer
-	var samples = new Float32Array( e.inputBuffer.getChannelData( 0 ) ); // Copy the samples in a new Float32Array, to avoid memory dealocation
 
-	// Analyse the sound to autoStart when it should
-	for ( var i=0; i < samples.length; i++ ) {
-		var amplitude = Math.abs( samples[ i ] );
-		if ( amplitude > this.startThreshold ) {
-			// start the record
-			this._state = STATE.recording;
-			this._fire( 'started' );
-			return this._audioRecordingProcess( e );
-		}
-	}
-
-	// Store the sound in the AudioRecord object
-	if ( this.marginBefore > 0 ) {
-		this._audioRecord.push( samples, this.marginBefore );
-	}
-	this._fire( 'listening', samples );
-};
-
-
-/**
- * Event handler for the recording ScriptProcessorNode.
- *
- * In charge of saving the incomming audio stream from the user's microphone
- * into the rawAudioBuffer.
- *
- * Check also if the incomming sound is not saturated, if the timeLimit
- * is not reached, and if the record should auto-stop.
- *
- * @private
- */
-LinguaRecorder.prototype._audioRecordingProcess = function( e ) {
-	// Get the samples from the input buffer
-	var samples = new Float32Array( e.inputBuffer.getChannelData( 0 ) ); // Copy the samples in a new Float32Array, to avoid memory dealocation
-
-	// Store the sound in the AudioRecord object
-	this._audioRecord.push( samples );
-	this._fire( 'recording', samples );
-
-	// Check if the samples are not saturated
-	for ( var i=0; i < samples.length; i++ ) {
-		var amplitude = Math.abs( samples[ i ] );
-		if ( amplitude > this.saturationThreshold ) {
-			this._fire( 'saturated' );
-			this._isSaturated = true;
-			if ( this.cancelOnSaturate ) {
-				this.stop();
-				return;
-			}
-			break;
-		}
-	}
-
-	// Analyse the sound to autoStop if needed
-	if ( this.autoStop ) {
-		var amplitudeMax = 0;
-		for ( var i=0; i < samples.length; i++ ) {
-			var amplitude = Math.abs( samples[ i ] );
-			if ( amplitude > amplitudeMax ) {
-				amplitudeMax = amplitude;
-			}
-		}
-
-		if ( amplitudeMax < this.stopThreshold ) {
-			this._silenceSamplesCount += samples.length;
-
-			if ( this._silenceSamplesCount >= ( this.stopDuration * this.audioContext.sampleRate ) ) {
-				this._audioRecord.rtrim( this.stopDuration - this.marginAfter );
-				this.stop();
-			}
-		}
-		else {
-			this._silenceSamplesCount = 0;
-		}
-	}
-
-	// If one is set, check if we have not reached the time limit
-	if ( this.timeLimit > 0 ) {
-		if ( this.timeLimit >= this._audioRecord.getDuration() ) {
-			this.stop();
-		}
-	}
-};
 

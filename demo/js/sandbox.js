@@ -81,6 +81,7 @@ function addSound( audioRecord ) {
     $( '#sounds' ).append( item );
 
     /* Complete with informations from the new AudioRecord */
+    console.log(audioRecord)
     var duration = Math.round( audioRecord.getDuration() * 1000 ) / 1000;
     header.text( duration + ' seconds' );
     playLink.click( function( e ) {
