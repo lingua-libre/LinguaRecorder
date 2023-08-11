@@ -6,10 +6,9 @@
  * @constructor
  * @param {number} [sampleRate] Rate at witch the samples added to this object should be played
  */
-var AudioRecord = function( sampleRate ) {
+var AudioRecord = function( samples, sampleRate ) {
 	this.sampleRate = sampleRate;
-	this.sampleBlocs = [];
-	this.length = 0;
+	this.samples = samples;
 };
 
 /**
@@ -20,27 +19,6 @@ var AudioRecord = function( sampleRate ) {
  */
 const BANNED_SAMPLES = [ 0x003F, 0x3F00, 0x6870, 0x7068 ];
 
-
-/**
- * Add some raw samples to the record.
- *
- * @param {Float32Array} [samples] samples to append to the record
- * @param {number} [rollingDuration] if set, last number of seconds of the record to keep after adding the new samples
- * @return {number} the new total number of samples stored.
- */
-AudioRecord.prototype.push = function( samples, rollingDuration ) {
-	this.length += samples.length;
-	this.sampleBlocs.push( samples );
-
-	if ( rollingDuration !== undefined ) {
-		var duration = this.getDuration();
-		if ( duration > rollingDuration ) {
-			this.ltrim( duration - rollingDuration );
-		}
-	}
-
-	return this.length;
-};
 
 
 /**
@@ -69,7 +47,7 @@ AudioRecord.prototype.getSampleRate = function() {
  * @return {number} number of samples.
  */
 AudioRecord.prototype.getLength = function() {
-	return this.length;
+	return this.samples.length;
 };
 
 
@@ -81,7 +59,7 @@ AudioRecord.prototype.getLength = function() {
  * @return {number} duration (in seconds) of the record.
  */
 AudioRecord.prototype.getDuration = function() {
-	return this.length / this.sampleRate;
+	return this.samples.length / this.sampleRate;
 };
 
 
@@ -91,16 +69,7 @@ AudioRecord.prototype.getDuration = function() {
  * @return {Float32Array} list of all samples.
  */
 AudioRecord.prototype.getSamples = function() {
-	var flattened = new Float32Array( this.length + 575 ),
-		nbBlocs = this.sampleBlocs.length,
-		offset = 0;
-
-	for ( var i = 0; i < nbBlocs; ++i ) {
-		flattened.set( this.sampleBlocs[ i ], offset );
-		offset += this.sampleBlocs[ i ].length
-	}
-
-	return flattened;
+	return this.samples;
 };
 
 
@@ -112,19 +81,12 @@ AudioRecord.prototype.getSamples = function() {
 AudioRecord.prototype.ltrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
-	if ( nbSamplesToRemove >= this.length ) {
-		this.sampleBlocs = [];
+	if ( nbSamplesToRemove >= this.samples.length ) {
+		this.clear();
 		return;
 	}
 
-	this.length -= nbSamplesToRemove;
-	while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ 0 ].length ) {
-		nbSamplesToRemove -= this.sampleBlocs[ 0 ].length;
-		this.sampleBlocs.shift();
-	}
-	if ( nbSamplesToRemove > 0 ) {
-		this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( nbSamplesToRemove );
-	}
+	this.samples = this.samples.subarray( 0, this.samples.length - nbSamplesToRemove );
 };
 
 
@@ -136,20 +98,12 @@ AudioRecord.prototype.ltrim = function( duration ) {
 AudioRecord.prototype.rtrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
-	if ( nbSamplesToRemove >= this.length ) {
-		this.sampleBlocs = [];
+	if ( nbSamplesToRemove >= this.samples.length ) {
+		this.clear();
 		return;
 	}
-
-	this.length -= nbSamplesToRemove;
-	while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length ) {
-		nbSamplesToRemove -= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length;
-		this.sampleBlocs.pop();
-	}
-	if ( nbSamplesToRemove > 0 ) {
-		var lastIndex = this.sampleBlocs.length - 1;
-		this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( 0, this.sampleBlocs[ lastIndex ].length - nbSamplesToRemove );
-	}
+	
+	this.samples = this.samples.subarray( nbSamplesToRemove );
 };
 
 
@@ -157,8 +111,7 @@ AudioRecord.prototype.rtrim = function( duration ) {
  * Clear the record.
  */
 AudioRecord.prototype.clear = function() {
-	this.length = 0;
-	this.sampleBlocs = [];
+	this.samples = new Float32Array( 0 );
 };
 
 
@@ -166,26 +119,18 @@ AudioRecord.prototype.clear = function() {
  * Play the record to the audio output (aka the user's loudspeaker)
  */
 AudioRecord.prototype.play = function() {
-	var audioContext = new (window.AudioContext || window.webkitAudioContext)();
+	var audioContext = new window.AudioContext();
 
-	var buffer = audioContext.createBuffer(1, this.length, 48000); //samplerate
+	var buffer = audioContext.createBuffer(1, this.samples.length, 48000); //samplerate
 	var channelData = buffer.getChannelData(0);
-	var nbBlocs = this.sampleBlocs.length
-	for ( var i = 0, t = 0; i < nbBlocs; i++ ) {
-		var nbSamples = this.sampleBlocs[ i ].length;
-		for ( var j = 0; j < nbSamples; j++ ) {
-			channelData[t++] = this.sampleBlocs[ i ][ j ];
-		}
+	for ( var i = 0; i < this.samples.length; i++ ) {
+		channelData[i] = this.samples[ i ];
 	}
 
 	var source = audioContext.createBufferSource();
 	source.buffer = buffer;
 	source.connect( audioContext.destination );
 
-	// Include deprecated noteOn to support old versions of Chrome
-	if ( source.start === undefined ) {
-		source.start = source.noteOn;
-	}
 	source.start(0);
 };
 
@@ -198,14 +143,13 @@ AudioRecord.prototype.play = function() {
  */
 AudioRecord.prototype.getBlob = function() {
 	var sample,
-		buffer = new ArrayBuffer(44 + this.length * 2),
-		view = new DataView(buffer),
-		samples = this.getSamples();
+		buffer = new ArrayBuffer(44 + this.samples.length * 2),
+		view = new DataView(buffer);
 
 	/* RIFF identifier */
 	writeString(view, 0, 'RIFF');
 	/* file length */
-	view.setUint32(4, 32 + this.length * 2, true);
+	view.setUint32(4, 32 + this.samples.length * 2, true);
 	/* RIFF type */
 	writeString(view, 8, 'WAVE');
 	/* format chunk identifier */
@@ -227,11 +171,11 @@ AudioRecord.prototype.getBlob = function() {
 	/* data chunk identifier */
 	writeString(view, 36, 'data');
 	/* data chunk length */
-	view.setUint32(40, this.length * 2, true);
+	view.setUint32(40, this.samples.length * 2, true);
 
-	for (var i = 0; i < this.length; i++){
+	for (var i = 0; i < this.samples.length; i++){
 		/* Turn a 0->1 amplitude to 0->0x7FFF (highest number possible in a signed 16bits integer) */
-		sample = parseInt( samples[i] * 0x7FFF );
+		sample = parseInt( this.samples[i] * 0x7FFF );
 		/* Get rid of banned samples by incrementing it */
 		if ( BANNED_SAMPLES.indexOf( sample ) > -1 ) {
 			sample++;
@@ -262,10 +206,6 @@ AudioRecord.prototype.getWAVE = function() {
  * @return {DOMString} URL representing the record.
  */
 AudioRecord.prototype.getObjectURL = function () {
-	// To support chrome 22 (window.URL was added in chrome 23)
-	if ( window.URL === undefined ) {
-		window.URL = window.webkitURL;
-	}
 	return window.URL.createObjectURL( this.getBlob() );
 };
 

@@ -32,13 +32,10 @@ TODO
  * @cfg {number} [minDuration=0.15] Duration value in seconds. Discard the record if it last less than minDuration. Default value to 0.15, use 0 to disable.
  */
 var LinguaRecorder = function( config ) {
-	// Configuration initialization
-	config = config || {};
-
 	this.stream = null;
 
 	// TODO: create a setConfig method
-	this.recordProcessorConfig = config;
+	this.recordProcessorConfig = config || {};
 
 	this._state = STATE.stop;
 
@@ -82,7 +79,6 @@ LinguaRecorder.prototype.getRecordingTime = function() {
  * @return {string} One of the following: 'stop', 'listening', 'recording', 'paused'
  */
 LinguaRecorder.prototype.getState = function() {
-	//TODO: update this
 	return this._state;
 };
 
@@ -301,38 +297,14 @@ LinguaRecorder.prototype._getAudioStream = function() {
 	var recorder = this;
 
 	// Current best practice to get the audio stream according to the specs
-	if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-		navigator.mediaDevices.getUserMedia({audio: true, video:false})
-		.then(function(localMediaStream) {
-			recorder.stream = localMediaStream;
-			recorder._initStream();
-			recorder._fire( 'ready', localMediaStream );
-			console.log('ready')
-		} ).catch(function(err) {
-			recorder._fire( 'readyFail', err );
-			console.log('error');
-			console.log(err)
-		} );
-	}
-	// Legacy methods, kept to support old browsers
-	else {
-		navigator.getUserMediaFct = ( navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
-		if (!navigator.getUserMediaFct) {
-			return;
-		}
-
-		navigator.getUserMediaFct(
-			{"audio": true, "video": false},
-			function(localMediaStream) {
-				recorder.stream = localMediaStream;
-				recorder._initStream();
-				recorder._fire( 'ready', localMediaStream );
-			},
-			function(err) {
-				recorder._fire( 'readyFail', err );
-			}
-		);
-	}
+	navigator.mediaDevices.getUserMedia({audio: true, video:false})
+	.then(function(localMediaStream) {
+		recorder.stream = localMediaStream;
+		recorder._initStream();
+		recorder._fire( 'ready', localMediaStream );
+	} ).catch(function(err) {
+		recorder._fire( 'readyFail', err );
+	} );
 };
 
 
@@ -347,10 +319,7 @@ LinguaRecorder.prototype._getAudioStream = function() {
 LinguaRecorder.prototype._initStream = function() {
 	var recorder = this;
 
-	this._state = STATE.stop;
-
-	// The 'Webkit' prefix is here to support old Chrome and Opera versions
-	this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+	this.audioContext = new window.AudioContext();
 	this.audioInput = this.audioContext.createMediaStreamSource( this.stream );
 
 	this.recordProcessorConfig.sampleRate = this.audioContext.sampleRate;
@@ -358,32 +327,36 @@ LinguaRecorder.prototype._initStream = function() {
 		this.processor = new AudioWorkletNode( this.audioContext, 'recording-processor', { processorOptions: this.recordProcessorConfig } ); //TODO: include a polify for older browsers?
 
 		this.audioInput.connect( this.processor );
-		//this.processor.connect( this.audioContext.destination );
 		
 		this.processor.port.onmessage = (event) => {
 			console.log("LR:", event.data.message)
 			switch (event.data.message) {
 				case 'started':
+					this._state = STATE.recording;
 					this._fire( 'started' );
 					break;
 				case 'listening':
+					this._state = STATE.listening;
 					this._fire( 'listening', event.data.samples );
 					break;
 				case 'recording':
+					this._state = STATE.recording;
 					this._fire( 'recording', event.data.samples );
 					break;
 				case 'saturated':
 					this._fire( 'saturated' );
 					break;
 				case 'paused':
+					this._state = STATE.paused;
 					this._fire( 'paused' );
 					break;
 				case 'stoped':
-					var audioRecord = new AudioRecord( this.audioContext.sampleRate )
-					audioRecord.push( event.data.record )
+					this._state = STATE.stop;
+					var audioRecord = new AudioRecord( event.data.record, this.audioContext.sampleRate )
 					this._fire( 'stoped', audioRecord );
 					break;
 				case 'canceled':
+					this._state = STATE.stop;
 					this._fire( 'canceled', event.data.reason );
 					break;
 			}
@@ -403,7 +376,6 @@ LinguaRecorder.prototype._initStream = function() {
  */
 LinguaRecorder.prototype._connect = function() {
 	//TODO: update this
-	var processor;
 
 	var currentNode = this.audioInput;
 	for ( var i=0; i < this._extraAudioNodes.length; i++ ) {

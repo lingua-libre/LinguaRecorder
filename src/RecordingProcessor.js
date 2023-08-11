@@ -4,13 +4,13 @@
  * code from AudioRecord.js here because of the Worklet isolation.
  * TODO: integrate this into the AudioWorklet
  */
-var AudioRecord = function( sampleRate ) {
+var AudioSamples = function( sampleRate ) {
 	this.sampleRate = sampleRate;
 	this.sampleBlocs = [];
 	this.length = 0;
 };
 
-AudioRecord.prototype.push = function( samples, rollingDuration ) {
+AudioSamples.prototype.push = function( samples, rollingDuration ) {
 	this.length += samples.length;
 	this.sampleBlocs.push( samples );
 
@@ -24,11 +24,11 @@ AudioRecord.prototype.push = function( samples, rollingDuration ) {
 	return this.length;
 };
 
-AudioRecord.prototype.getDuration = function() {
+AudioSamples.prototype.getDuration = function() {
 	return this.length / this.sampleRate;
 };
 
-AudioRecord.prototype.getSamples = function() {
+AudioSamples.prototype.get = function() {
 	var flattened = new Float32Array( this.length ),
 		nbBlocs = this.sampleBlocs.length,
 		offset = 0;
@@ -41,7 +41,7 @@ AudioRecord.prototype.getSamples = function() {
 	return flattened;
 };
 
-AudioRecord.prototype.ltrim = function( duration ) {
+AudioSamples.prototype.ltrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 	if ( nbSamplesToRemove >= this.length ) {
@@ -59,7 +59,7 @@ AudioRecord.prototype.ltrim = function( duration ) {
 	}
 };
 
-AudioRecord.prototype.rtrim = function( duration ) {
+AudioSamples.prototype.rtrim = function( duration ) {
 	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 	if ( nbSamplesToRemove >= this.length ) {
@@ -110,7 +110,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 		this.sampleRate = options.processorOptions.sampleRate;
 
 		this._state = STATE.stop;
-		this._audioRecord = null;
+		this._audioSamples = null;
 		this._silenceSamplesCount = 0;
 		this._isSaturated = false;
 
@@ -151,7 +151,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 		}
 
 		if ( this._state === STATE.stop ) {
-			this._audioRecord = new AudioRecord( this.sampleRate );
+			this._audioSamples = new AudioSamples( this.sampleRate );
 			this._silenceSamplesCount = 0;
 			this._isSaturated = false;
 
@@ -191,19 +191,19 @@ class RecordingProcessor extends AudioWorkletProcessor {
 		}
 
 		if ( cancelRecord === true ) {
-			this._audioRecord = null;
+			this._audioSamples = null;
 			this.port.postMessage({ message: 'canceled', reason: 'asked' });
 		}
 		else if ( ( this.discardOnSaturate || this.cancelOnSaturate ) && this._isSaturated ) {
-			this._audioRecord = null;
+			this._audioSamples = null;
 			this.port.postMessage({ message: 'canceled', reason: 'saturated' });
 		}
-		else if ( this._audioRecord.getDuration() < this.minDuration ) {
-			this._audioRecord = null;
+		else if ( this._audioSamples.getDuration() < this.minDuration ) {
+			this._audioSamples = null;
 			this.port.postMessage({ message: 'canceled', reason: 'tooShort' });
 		}
 		else {
-			this.port.postMessage({ message: 'stoped', record: this._audioRecord.getSamples() });
+			this.port.postMessage({ message: 'stoped', record: this._audioSamples.get() });
 		}
 		
 		this._state = STATE.stop
@@ -252,7 +252,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 
 		// Store the sound in the AudioRecord object
 		if ( this.marginBefore > 0 ) {
-			this._audioRecord.push( samples, this.marginBefore );
+			this._audioSamples.push( samples, this.marginBefore );
 		}
 		this.port.postMessage({ message: 'listening', samples: samples });
 	}
@@ -274,7 +274,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 		var samples = new Float32Array( inputs[0][0] ); // Copy the samples in a new Float32Array, to avoid memory dealocation
 
 		// Store the sound in the AudioRecord object
-		this._audioRecord.push( samples );
+		this._audioSamples.push( samples );
 		this.port.postMessage({ message: 'recording', samples: samples });
 
 		// Check if the samples are not saturated
@@ -305,7 +305,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 				this._silenceSamplesCount += samples.length;
 
 				if ( this._silenceSamplesCount >= ( this.stopDuration * this.sampleRate ) ) {
-					this._audioRecord.rtrim( this.stopDuration - this.marginAfter );
+					this._audioSamples.rtrim( this.stopDuration - this.marginAfter );
 					this._stop();
 				}
 			}
@@ -316,7 +316,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 
 		// If one is set, check if we have not reached the time limit
 		if ( this.timeLimit > 0 ) {
-			if ( this.timeLimit >= this._audioRecord.getDuration() ) {
+			if ( this.timeLimit >= this._audioSamples.getDuration() ) {
 				this._stop();
 			}
 		}
