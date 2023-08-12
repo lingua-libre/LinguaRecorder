@@ -1,326 +1,326 @@
 'use strict';
 
-
-const STATE = {
-	stop: 'stop',
-	listening: 'listen',
-	recording: 'record',
-	paused: 'pause',
-}
-
-
-class AudioSamples {
-	constructor( sampleRate ) {
-		this.sampleRate = sampleRate;
-		this.sampleBlocs = [];
-		this.length = 0;
+function recordingProcessorEncapsulation() {
+	const STATE = {
+		stop: 'stop',
+		listening: 'listen',
+		recording: 'record',
+		paused: 'pause',
 	}
-	
-	push( samples, rollingDuration ) {
-		this.length += samples.length;
-		this.sampleBlocs.push( samples );
 
-		if ( rollingDuration !== undefined ) {
-			let duration = this.getDuration();
-			if ( duration > rollingDuration ) {
-				this.ltrim( duration - rollingDuration );
+
+	class AudioSamples {
+		constructor( sampleRate ) {
+			this.sampleRate = sampleRate;
+			this.sampleBlocs = [];
+			this.length = 0;
+		}
+
+		push( samples, rollingDuration ) {
+			this.length += samples.length;
+			this.sampleBlocs.push( samples );
+
+			if ( rollingDuration !== undefined ) {
+				let duration = this.getDuration();
+				if ( duration > rollingDuration ) {
+					this.ltrim( duration - rollingDuration );
+				}
+			}
+
+			return this.length;
+		}
+
+		get() {
+			var flattened = new Float32Array( this.length ),
+				nbBlocs = this.sampleBlocs.length,
+				offset = 0;
+
+			for ( let i = 0; i < nbBlocs; ++i ) {
+				flattened.set( this.sampleBlocs[ i ], offset );
+				offset += this.sampleBlocs[ i ].length
+			}
+
+			return flattened;
+		}
+
+		getDuration() {
+			return this.length / this.sampleRate;
+		}
+
+		ltrim( duration ) {
+			var nbSamplesToRemove = Math.round( duration * this.sampleRate );
+
+			if ( nbSamplesToRemove >= this.length ) {
+				this.sampleBlocs = [];
+				return;
+			}
+
+			this.length -= nbSamplesToRemove;
+			while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ 0 ].length ) {
+				nbSamplesToRemove -= this.sampleBlocs[ 0 ].length;
+				this.sampleBlocs.shift();
+			}
+			if ( nbSamplesToRemove > 0 ) {
+				this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( nbSamplesToRemove );
 			}
 		}
 
-		return this.length;
-	}
-	
-	get() {
-		var flattened = new Float32Array( this.length ),
-			nbBlocs = this.sampleBlocs.length,
-			offset = 0;
+		rtrim( duration ) {
+			var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
-		for ( let i = 0; i < nbBlocs; ++i ) {
-			flattened.set( this.sampleBlocs[ i ], offset );
-			offset += this.sampleBlocs[ i ].length
-		}
-
-		return flattened;
-	}
-	
-	getDuration() {
-		return this.length / this.sampleRate;
-	}
-	
-	ltrim( duration ) {
-		var nbSamplesToRemove = Math.round( duration * this.sampleRate );
-
-		if ( nbSamplesToRemove >= this.length ) {
-			this.sampleBlocs = [];
-			return;
-		}
-
-		this.length -= nbSamplesToRemove;
-		while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ 0 ].length ) {
-			nbSamplesToRemove -= this.sampleBlocs[ 0 ].length;
-			this.sampleBlocs.shift();
-		}
-		if ( nbSamplesToRemove > 0 ) {
-			this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( nbSamplesToRemove );
-		}
-	}
-	
-	rtrim( duration ) {
-		var nbSamplesToRemove = Math.round( duration * this.sampleRate );
-
-		if ( nbSamplesToRemove >= this.length ) {
-			this.sampleBlocs = [];
-			return;
-		}
-
-		this.length -= nbSamplesToRemove;
-		while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length ) {
-			nbSamplesToRemove -= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length;
-			this.sampleBlocs.pop();
-		}
-		if ( nbSamplesToRemove > 0 ) {
-			let lastIndex = this.sampleBlocs.length - 1;
-			this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( 0, this.sampleBlocs[ lastIndex ].length - nbSamplesToRemove );
-		}
-	}
-}
-
-
-
-class RecordingProcessor extends AudioWorkletProcessor {
-	constructor( options ) {
-		super();
-		
-		this.autoStart = options.processorOptions.autoStart === true;
-		this.autoStop = options.processorOptions.autoStop === true;
-		this.timeLimit = options.processorOptions.timeLimit || 0;
-		this.cancelOnSaturate = options.processorOptions.onSaturate === 'cancel';
-		this.discardOnSaturate = options.processorOptions.onSaturate === 'discard';
-		this.saturationThreshold = options.processorOptions.saturationThreshold || 0.99;
-
-		this.startThreshold = options.processorOptions.startThreshold === undefined ? 0.1 : options.processorOptions.startThreshold;
-		this.stopThreshold = options.processorOptions.stopThreshold === undefined ? 0.05 : options.processorOptions.stopThreshold;
-		this.stopDuration = options.processorOptions.stopDuration === undefined ? 0.3 : options.processorOptions.stopDuration;
-		this.marginBefore = options.processorOptions.marginBefore === undefined ? 0.25 : options.processorOptions.marginBefore;
-		this.marginAfter = options.processorOptions.marginAfter === undefined ? 0.25 : options.processorOptions.marginAfter;
-		this.minDuration = options.processorOptions.minDuration === undefined ? 0.15 : options.processorOptions.minDuration;
-		
-		
-		this.sampleRate = options.processorOptions.sampleRate;
-
-		this._state = STATE.stop;
-		this._audioSamples = null;
-		this._silenceSamplesCount = 0;
-		this._isSaturated = false;
-
-		this.port.onmessage = ( event ) => {
-			console.log("RP:", event.data.message)
-			switch ( event.data.message ) {
-				case 'start':
-					this._start();
-					break;
-				
-				case 'pause':
-					this._pause();
-					break;
-				
-				case 'stop':
-					this._stop();
-					break;
-				
-				case 'cancel':
-					this._stop( true );
-					break;
-				
-				case 'toggle':
-					if ( this._state === STATE.recording || this._state === STATE.listening ) {
-						this.stop();
-					}
-					else {
-						this.start();
-					}
-					break;
+			if ( nbSamplesToRemove >= this.length ) {
+				this.sampleBlocs = [];
+				return;
 			}
-		};
-	}
-	
-	_start() {
-		if ( this._state === STATE.listening || this._state === STATE.recording ) {
-			return false;
-		}
 
-		if ( this._state === STATE.stop ) {
-			this._audioSamples = new AudioSamples( this.sampleRate );
+			this.length -= nbSamplesToRemove;
+			while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length ) {
+				nbSamplesToRemove -= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length;
+				this.sampleBlocs.pop();
+			}
+			if ( nbSamplesToRemove > 0 ) {
+				let lastIndex = this.sampleBlocs.length - 1;
+				this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( 0, this.sampleBlocs[ lastIndex ].length - nbSamplesToRemove );
+			}
+		}
+	}
+
+
+
+	class RecordingProcessor extends AudioWorkletProcessor {
+		constructor( options ) {
+			super();
+
+			this.autoStart = options.processorOptions.autoStart === true;
+			this.autoStop = options.processorOptions.autoStop === true;
+			this.timeLimit = options.processorOptions.timeLimit || 0;
+			this.cancelOnSaturate = options.processorOptions.onSaturate === 'cancel';
+			this.discardOnSaturate = options.processorOptions.onSaturate === 'discard';
+			this.saturationThreshold = options.processorOptions.saturationThreshold || 0.99;
+
+			this.startThreshold = options.processorOptions.startThreshold === undefined ? 0.1 : options.processorOptions.startThreshold;
+			this.stopThreshold = options.processorOptions.stopThreshold === undefined ? 0.05 : options.processorOptions.stopThreshold;
+			this.stopDuration = options.processorOptions.stopDuration === undefined ? 0.3 : options.processorOptions.stopDuration;
+			this.marginBefore = options.processorOptions.marginBefore === undefined ? 0.25 : options.processorOptions.marginBefore;
+			this.marginAfter = options.processorOptions.marginAfter === undefined ? 0.25 : options.processorOptions.marginAfter;
+			this.minDuration = options.processorOptions.minDuration === undefined ? 0.15 : options.processorOptions.minDuration;
+
+			this.sampleRate = options.processorOptions.sampleRate;
+
+			this._state = STATE.stop;
+			this._audioSamples = null;
 			this._silenceSamplesCount = 0;
 			this._isSaturated = false;
 
-			if ( this.autoStart ) {
-				this._state = STATE.listening;
-				return true;
-			}
-		}
+			this.port.onmessage = ( event ) => {
+				console.log("RP:", event.data.message)
+				switch ( event.data.message ) {
+					case 'start':
+						this._start();
+						break;
 
-		this._state = STATE.recording;
-		this.port.postMessage({ message: 'started' });
+					case 'pause':
+						this._pause();
+						break;
 
-		return true;
-	}
-	
-	_pause() {
-		if ( this._state === STATE.stop || this._state === STATE.paused ) {
-			return false;
-		}
+					case 'stop':
+						this._stop();
+						break;
 
-		if ( this._state === STATE.listening ) {
-			this._state = STATE.stop;
-		}
-		else {
-			this._state = STATE.paused;
-		}
+					case 'cancel':
+						this._stop( true );
+						break;
 
-		this.port.postMessage({ message: 'paused' });
-		return true;
-	}
-	
-	_stop( cancelRecord ) {
-		var cancelRecord = false || cancelRecord;
-
-		if ( this._state === STATE.stop ) {
-			return false;
-		}
-
-		if ( cancelRecord === true ) {
-			this._audioSamples = null;
-			this.port.postMessage({ message: 'canceled', reason: 'asked' });
-		}
-		else if ( ( this.discardOnSaturate || this.cancelOnSaturate ) && this._isSaturated ) {
-			this._audioSamples = null;
-			this.port.postMessage({ message: 'canceled', reason: 'saturated' });
-		}
-		else if ( this._audioSamples.getDuration() < this.minDuration ) {
-			this._audioSamples = null;
-			this.port.postMessage({ message: 'canceled', reason: 'tooShort' });
-		}
-		else {
-			this.port.postMessage({ message: 'stoped', record: this._audioSamples.get() });
-		}
-		
-		this._state = STATE.stop
-
-		return true;
-	}
-
-	process(inputs, outputs, params) {
-		if ( this._state === STATE.listening ) {
-			this._audioListeningProcess( inputs, outputs, params );
-		}
-		else if ( this._state === STATE.recording ) {
-			this._audioRecordingProcess( inputs, outputs, params );
-		}
-		
-		// Pass data directly to output, unchanged.  TODO: needed?
-		for ( let sample = 0; sample < inputs[0][0].length; sample++ ) {
-			outputs[0][0][sample] = inputs[0][0][sample];
-		}
-		
-		return true; //needed to keep the processor alive
-	}
-	
-	/**
-	 * Event handler for the listening ScriptProcessorNode.
-	 *
-	 * Check whether it can auto-start recording, or store
-	 * the last marginBefore seconds incomming from the microphone.
-	 *
-	 * @private
-	 */
-	_audioListeningProcess( inputs, outputs, params ) {
-		// Get the samples from the input buffer
-		var samples = new Float32Array( inputs[0][0] ); // Copy the samples in a new Float32Array, to avoid memory dealocation
-
-		// Analyse the sound to autoStart when it should
-		for ( let i = 0; i < samples.length; i++ ) {
-			let amplitude = Math.abs( samples[ i ] );
-			if ( amplitude > this.startThreshold ) {
-				// start the record
-				this._state = STATE.recording;
-				this.port.postMessage({ message: 'started' });
-				return this._audioRecordingProcess( inputs, outputs, params );
-			}
-		}
-
-		// Store the sound in the AudioRecord object
-		if ( this.marginBefore > 0 ) {
-			this._audioSamples.push( samples, this.marginBefore );
-		}
-		this.port.postMessage({ message: 'listening', samples: samples });
-	}
-
-
-	/**
-	 * Event handler for the recording ScriptProcessorNode.
-	 *
-	 * In charge of saving the incomming audio stream from the user's microphone
-	 * into the rawAudioBuffer.
-	 *
-	 * Check also if the incomming sound is not saturated, if the timeLimit
-	 * is not reached, and if the record should auto-stop.
-	 *
-	 * @private
-	 */
-	_audioRecordingProcess( inputs, outputs, params ) {
-		// Get the samples from the input buffer
-		var samples = new Float32Array( inputs[0][0] ); // Copy the samples in a new Float32Array, to avoid memory dealocation
-
-		// Store the sound in the AudioRecord object
-		this._audioSamples.push( samples );
-		this.port.postMessage({ message: 'recording', samples: samples });
-
-		// Check if the samples are not saturated
-		for ( let i = 0; i < samples.length; i++ ) {
-			let amplitude = Math.abs( samples[ i ] );
-			if ( amplitude > this.saturationThreshold ) {
-				this.port.postMessage({ message: 'saturated' });
-				this._isSaturated = true;
-				if ( this.cancelOnSaturate ) {
-					this._stop();
-					return;
+					case 'toggle':
+						if ( this._state === STATE.recording || this._state === STATE.listening ) {
+							this.stop();
+						}
+						else {
+							this.start();
+						}
+						break;
 				}
-				break;
-			}
+			};
 		}
 
-		// Analyse the sound to autoStop if needed
-		if ( this.autoStop ) {
-			let amplitudeMax = 0;
-			for ( let i = 0; i < samples.length; i++ ) {
-				let amplitude = Math.abs( samples[ i ] );
-				if ( amplitude > amplitudeMax ) {
-					amplitudeMax = amplitude;
+		_start() {
+			if ( this._state === STATE.listening || this._state === STATE.recording ) {
+				return false;
+			}
+
+			if ( this._state === STATE.stop ) {
+				this._audioSamples = new AudioSamples( this.sampleRate );
+				this._silenceSamplesCount = 0;
+				this._isSaturated = false;
+
+				if ( this.autoStart ) {
+					this._state = STATE.listening;
+					return true;
 				}
 			}
 
-			if ( amplitudeMax < this.stopThreshold ) {
-				this._silenceSamplesCount += samples.length;
+			this._state = STATE.recording;
+			this.port.postMessage({ message: 'started' });
 
-				if ( this._silenceSamplesCount >= ( this.stopDuration * this.sampleRate ) ) {
-					this._audioSamples.rtrim( this.stopDuration - this.marginAfter );
-					this._stop();
-				}
+			return true;
+		}
+
+		_pause() {
+			if ( this._state === STATE.stop || this._state === STATE.paused ) {
+				return false;
+			}
+
+			if ( this._state === STATE.listening ) {
+				this._state = STATE.stop;
 			}
 			else {
-				this._silenceSamplesCount = 0;
+				this._state = STATE.paused;
 			}
+
+			this.port.postMessage({ message: 'paused' });
+			return true;
 		}
 
-		// If one is set, check if we have not reached the time limit
-		if ( this.timeLimit > 0 ) {
-			if ( this.timeLimit >= this._audioSamples.getDuration() ) {
-				this._stop();
+		_stop( cancelRecord ) {
+			var cancelRecord = false || cancelRecord;
+
+			if ( this._state === STATE.stop ) {
+				return false;
+			}
+
+			if ( cancelRecord === true ) {
+				this._audioSamples = null;
+				this.port.postMessage({ message: 'canceled', reason: 'asked' });
+			}
+			else if ( ( this.discardOnSaturate || this.cancelOnSaturate ) && this._isSaturated ) {
+				this._audioSamples = null;
+				this.port.postMessage({ message: 'canceled', reason: 'saturated' });
+			}
+			else if ( this._audioSamples.getDuration() < this.minDuration ) {
+				this._audioSamples = null;
+				this.port.postMessage({ message: 'canceled', reason: 'tooShort' });
+			}
+			else {
+				this.port.postMessage({ message: 'stoped', record: this._audioSamples.get() });
+			}
+
+			this._state = STATE.stop
+
+			return true;
+		}
+
+		process(inputs, outputs, params) {
+			if ( this._state === STATE.listening ) {
+				this._audioListeningProcess( inputs, outputs, params );
+			}
+			else if ( this._state === STATE.recording ) {
+				this._audioRecordingProcess( inputs, outputs, params );
+			}
+
+			// Pass data directly to output, unchanged. TODO: needed?
+			for ( let sample = 0; sample < inputs[0][0].length; sample++ ) {
+				outputs[0][0][sample] = inputs[0][0][sample];
+			}
+
+			return true; //needed to keep the processor alive
+		}
+
+		/**
+		 * Event handler for the listening ScriptProcessorNode.
+		 *
+		 * Check whether it can auto-start recording, or store
+		 * the last marginBefore seconds incomming from the microphone.
+		 *
+		 * @private
+		 */
+		_audioListeningProcess( inputs, outputs, params ) {
+			// Get the samples from the input buffer
+			var samples = new Float32Array( inputs[0][0] ); // Copy the samples in a new Float32Array, to avoid memory dealocation
+
+			// Analyse the sound to autoStart when it should
+			for ( let i = 0; i < samples.length; i++ ) {
+				let amplitude = Math.abs( samples[ i ] );
+				if ( amplitude > this.startThreshold ) {
+					// start the record
+					this._state = STATE.recording;
+					this.port.postMessage({ message: 'started' });
+					return this._audioRecordingProcess( inputs, outputs, params );
+				}
+			}
+
+			// Store the sound in the AudioRecord object
+			if ( this.marginBefore > 0 ) {
+				this._audioSamples.push( samples, this.marginBefore );
+			}
+			this.port.postMessage({ message: 'listening', samples: samples });
+		}
+
+
+		/**
+		 * Event handler for the recording ScriptProcessorNode.
+		 *
+		 * In charge of saving the incomming audio stream from the user's microphone
+		 * into the rawAudioBuffer.
+		 *
+		 * Check also if the incomming sound is not saturated, if the timeLimit
+		 * is not reached, and if the record should auto-stop.
+		 *
+		 * @private
+		 */
+		_audioRecordingProcess( inputs, outputs, params ) {
+			// Get the samples from the input buffer
+			var samples = new Float32Array( inputs[0][0] ); // Copy the samples in a new Float32Array, to avoid memory dealocation
+
+			// Store the sound in the AudioRecord object
+			this._audioSamples.push( samples );
+			this.port.postMessage({ message: 'recording', samples: samples });
+
+			// Check if the samples are not saturated
+			for ( let i = 0; i < samples.length; i++ ) {
+				let amplitude = Math.abs( samples[ i ] );
+				if ( amplitude > this.saturationThreshold ) {
+					this.port.postMessage({ message: 'saturated' });
+					this._isSaturated = true;
+					if ( this.cancelOnSaturate ) {
+						this._stop();
+						return;
+					}
+					break;
+				}
+			}
+
+			// Analyse the sound to autoStop if needed
+			if ( this.autoStop ) {
+				let amplitudeMax = 0;
+				for ( let i = 0; i < samples.length; i++ ) {
+					let amplitude = Math.abs( samples[ i ] );
+					if ( amplitude > amplitudeMax ) {
+						amplitudeMax = amplitude;
+					}
+				}
+
+				if ( amplitudeMax < this.stopThreshold ) {
+					this._silenceSamplesCount += samples.length;
+
+					if ( this._silenceSamplesCount >= ( this.stopDuration * this.sampleRate ) ) {
+						this._audioSamples.rtrim( this.stopDuration - this.marginAfter );
+						this._stop();
+					}
+				}
+				else {
+					this._silenceSamplesCount = 0;
+				}
+			}
+
+			// If one is set, check if we have not reached the time limit
+			if ( this.timeLimit > 0 ) {
+				if ( this.timeLimit >= this._audioSamples.getDuration() ) {
+					this._stop();
+				}
 			}
 		}
 	}
-}
 
-registerProcessor('recording-processor', RecordingProcessor);
+	registerProcessor('recording-processor', RecordingProcessor);
+}
 

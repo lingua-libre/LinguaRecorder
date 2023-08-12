@@ -301,7 +301,7 @@ class LinguaRecorder {
 			this._fire( 'readyFail', error );
 			return;
 		}
-		
+
 		this._initStream();
 		this._fire( 'ready', this.stream );
 	}
@@ -319,10 +319,14 @@ class LinguaRecorder {
 		this.audioContext = new window.AudioContext();
 		this.audioInput = this.audioContext.createMediaStreamSource( this.stream );
 
-		await this.audioContext.audioWorklet.addModule('../src/RecordingProcessor.js'); //TODO: change this
-		
+		// We load our AudioWorkletProcessor module as a blob url containing a stringified IIFE code
+		// instead of givng a traditional url, because we don't know here the path at which
+		// the RecordingProcessor.js file will be accessible
+		const blob = new Blob([`(${recordingProcessorEncapsulation})()`], { type: "application/javascript; charset=utf-8" });
+		await this.audioContext.audioWorklet.addModule(URL.createObjectURL(blob));
+
 		this.recordProcessorConfig.sampleRate = this.audioContext.sampleRate;
-		this.processor = new AudioWorkletNode( this.audioContext, 'recording-processor', { processorOptions: this.recordProcessorConfig } ); //TODO: include a polify for older browsers?
+		this.processor = new AudioWorkletNode( this.audioContext, 'recording-processor', { processorOptions: this.recordProcessorConfig } );
 
 		this.audioInput.connect( this.processor );
 
