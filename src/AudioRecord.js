@@ -123,7 +123,7 @@ AudioRecord.prototype.ltrim = function( duration ) {
 		this.sampleBlocs.shift();
 	}
 	if ( nbSamplesToRemove > 0 ) {
-		this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( 0, this.sampleBlocs[ 0 ].length - nbSamplesToRemove );
+		this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( nbSamplesToRemove );
 	}
 };
 
@@ -148,7 +148,7 @@ AudioRecord.prototype.rtrim = function( duration ) {
 	}
 	if ( nbSamplesToRemove > 0 ) {
 		var lastIndex = this.sampleBlocs.length - 1;
-		this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( nbSamplesToRemove );
+		this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( 0, this.sampleBlocs[ lastIndex ].length - nbSamplesToRemove );
 	}
 };
 
