@@ -86,7 +86,7 @@ AudioRecord.prototype.ltrim = function( duration ) {
 		return;
 	}
 
-	this.samples = this.samples.subarray( 0, this.samples.length - nbSamplesToRemove );
+	this.samples = this.samples.subarray( nbSamplesToRemove );
 };
 
 
@@ -103,7 +103,7 @@ AudioRecord.prototype.rtrim = function( duration ) {
 		return;
 	}
 	
-	this.samples = this.samples.subarray( nbSamplesToRemove );
+	this.samples = this.samples.subarray( 0, this.samples.length - nbSamplesToRemove );
 };
 
 
