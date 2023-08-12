@@ -1,95 +1,94 @@
 'use strict';
 
-/**
- * code from AudioRecord.js here because of the Worklet isolation.
- * TODO: integrate this into the AudioWorklet
- */
-var AudioSamples = function( sampleRate ) {
-	this.sampleRate = sampleRate;
-	this.sampleBlocs = [];
-	this.length = 0;
-};
 
-AudioSamples.prototype.push = function( samples, rollingDuration ) {
-	this.length += samples.length;
-	this.sampleBlocs.push( samples );
-
-	if ( rollingDuration !== undefined ) {
-		var duration = this.getDuration();
-		if ( duration > rollingDuration ) {
-			this.ltrim( duration - rollingDuration );
-		}
-	}
-
-	return this.length;
-};
-
-AudioSamples.prototype.getDuration = function() {
-	return this.length / this.sampleRate;
-};
-
-AudioSamples.prototype.get = function() {
-	var flattened = new Float32Array( this.length ),
-		nbBlocs = this.sampleBlocs.length,
-		offset = 0;
-
-	for ( let i = 0; i < nbBlocs; ++i ) {
-		flattened.set( this.sampleBlocs[ i ], offset );
-		offset += this.sampleBlocs[ i ].length
-	}
-
-	return flattened;
-};
-
-AudioSamples.prototype.ltrim = function( duration ) {
-	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
-
-	if ( nbSamplesToRemove >= this.length ) {
-		this.sampleBlocs = [];
-		return;
-	}
-
-	this.length -= nbSamplesToRemove;
-	while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ 0 ].length ) {
-		nbSamplesToRemove -= this.sampleBlocs[ 0 ].length;
-		this.sampleBlocs.shift();
-	}
-	if ( nbSamplesToRemove > 0 ) {
-		this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( nbSamplesToRemove );
-	}
-};
-
-AudioSamples.prototype.rtrim = function( duration ) {
-	var nbSamplesToRemove = Math.round( duration * this.sampleRate );
-
-	if ( nbSamplesToRemove >= this.length ) {
-		this.sampleBlocs = [];
-		return;
-	}
-
-	this.length -= nbSamplesToRemove;
-	while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length ) {
-		nbSamplesToRemove -= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length;
-		this.sampleBlocs.pop();
-	}
-	if ( nbSamplesToRemove > 0 ) {
-		var lastIndex = this.sampleBlocs.length - 1;
-		this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( 0, this.sampleBlocs[ lastIndex ].length - nbSamplesToRemove );
-	}
-};
-
-
-
-
-var STATE = {
+const STATE = {
 	stop: 'stop',
 	listening: 'listen',
 	recording: 'record',
 	paused: 'pause',
 }
 
+
+class AudioSamples {
+	constructor( sampleRate ) {
+		this.sampleRate = sampleRate;
+		this.sampleBlocs = [];
+		this.length = 0;
+	}
+	
+	push( samples, rollingDuration ) {
+		this.length += samples.length;
+		this.sampleBlocs.push( samples );
+
+		if ( rollingDuration !== undefined ) {
+			let duration = this.getDuration();
+			if ( duration > rollingDuration ) {
+				this.ltrim( duration - rollingDuration );
+			}
+		}
+
+		return this.length;
+	}
+	
+	get() {
+		var flattened = new Float32Array( this.length ),
+			nbBlocs = this.sampleBlocs.length,
+			offset = 0;
+
+		for ( let i = 0; i < nbBlocs; ++i ) {
+			flattened.set( this.sampleBlocs[ i ], offset );
+			offset += this.sampleBlocs[ i ].length
+		}
+
+		return flattened;
+	}
+	
+	getDuration() {
+		return this.length / this.sampleRate;
+	}
+	
+	ltrim( duration ) {
+		var nbSamplesToRemove = Math.round( duration * this.sampleRate );
+
+		if ( nbSamplesToRemove >= this.length ) {
+			this.sampleBlocs = [];
+			return;
+		}
+
+		this.length -= nbSamplesToRemove;
+		while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ 0 ].length ) {
+			nbSamplesToRemove -= this.sampleBlocs[ 0 ].length;
+			this.sampleBlocs.shift();
+		}
+		if ( nbSamplesToRemove > 0 ) {
+			this.sampleBlocs[ 0 ] = this.sampleBlocs[ 0 ].subarray( nbSamplesToRemove );
+		}
+	}
+	
+	rtrim( duration ) {
+		var nbSamplesToRemove = Math.round( duration * this.sampleRate );
+
+		if ( nbSamplesToRemove >= this.length ) {
+			this.sampleBlocs = [];
+			return;
+		}
+
+		this.length -= nbSamplesToRemove;
+		while ( nbSamplesToRemove > 0 && nbSamplesToRemove >= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length ) {
+			nbSamplesToRemove -= this.sampleBlocs[ this.sampleBlocs.length - 1 ].length;
+			this.sampleBlocs.pop();
+		}
+		if ( nbSamplesToRemove > 0 ) {
+			let lastIndex = this.sampleBlocs.length - 1;
+			this.sampleBlocs[ lastIndex ] = this.sampleBlocs[ lastIndex ].subarray( 0, this.sampleBlocs[ lastIndex ].length - nbSamplesToRemove );
+		}
+	}
+}
+
+
+
 class RecordingProcessor extends AudioWorkletProcessor {
-	constructor(options) {
+	constructor( options ) {
 		super();
 		
 		this.autoStart = options.processorOptions.autoStart === true;
@@ -114,9 +113,9 @@ class RecordingProcessor extends AudioWorkletProcessor {
 		this._silenceSamplesCount = 0;
 		this._isSaturated = false;
 
-		this.port.onmessage = (event) => {
+		this.port.onmessage = ( event ) => {
 			console.log("RP:", event.data.message)
-			switch (event.data.message) {
+			switch ( event.data.message ) {
 				case 'start':
 					this._start();
 					break;
@@ -241,7 +240,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 
 		// Analyse the sound to autoStart when it should
 		for ( let i = 0; i < samples.length; i++ ) {
-			var amplitude = Math.abs( samples[ i ] );
+			let amplitude = Math.abs( samples[ i ] );
 			if ( amplitude > this.startThreshold ) {
 				// start the record
 				this._state = STATE.recording;
