@@ -33,7 +33,7 @@ AudioSamples.prototype.get = function() {
 		nbBlocs = this.sampleBlocs.length,
 		offset = 0;
 
-	for ( var i = 0; i < nbBlocs; ++i ) {
+	for ( let i = 0; i < nbBlocs; ++i ) {
 		flattened.set( this.sampleBlocs[ i ], offset );
 		offset += this.sampleBlocs[ i ].length
 	}
@@ -220,7 +220,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 		}
 		
 		// Pass data directly to output, unchanged.  TODO: needed?
-		for ( var sample=0; sample < inputs[0][0].length; sample++ ) {
+		for ( let sample = 0; sample < inputs[0][0].length; sample++ ) {
 			outputs[0][0][sample] = inputs[0][0][sample];
 		}
 		
@@ -240,7 +240,7 @@ class RecordingProcessor extends AudioWorkletProcessor {
 		var samples = new Float32Array( inputs[0][0] ); // Copy the samples in a new Float32Array, to avoid memory dealocation
 
 		// Analyse the sound to autoStart when it should
-		for ( var i=0; i < samples.length; i++ ) {
+		for ( let i = 0; i < samples.length; i++ ) {
 			var amplitude = Math.abs( samples[ i ] );
 			if ( amplitude > this.startThreshold ) {
 				// start the record
@@ -278,8 +278,8 @@ class RecordingProcessor extends AudioWorkletProcessor {
 		this.port.postMessage({ message: 'recording', samples: samples });
 
 		// Check if the samples are not saturated
-		for ( var i=0; i < samples.length; i++ ) {
-			var amplitude = Math.abs( samples[ i ] );
+		for ( let i = 0; i < samples.length; i++ ) {
+			let amplitude = Math.abs( samples[ i ] );
 			if ( amplitude > this.saturationThreshold ) {
 				this.port.postMessage({ message: 'saturated' });
 				this._isSaturated = true;
@@ -293,9 +293,9 @@ class RecordingProcessor extends AudioWorkletProcessor {
 
 		// Analyse the sound to autoStop if needed
 		if ( this.autoStop ) {
-			var amplitudeMax = 0;
-			for ( var i=0; i < samples.length; i++ ) {
-				var amplitude = Math.abs( samples[ i ] );
+			let amplitudeMax = 0;
+			for ( let i = 0; i < samples.length; i++ ) {
+				let amplitude = Math.abs( samples[ i ] );
 				if ( amplitude > amplitudeMax ) {
 					amplitudeMax = amplitude;
 				}

@@ -228,7 +228,7 @@ LinguaRecorder.prototype.connectAudioNode = function( node ) {
  */
 LinguaRecorder.prototype.disconnectAudioNode = function( node ) {
 	//TODO: update this
-	for ( var i = 0; i < this._extraAudioNodes.length; i++ ) {
+	for ( let i = 0; i < this._extraAudioNodes.length; i++ ) {
 		if ( node === this._extraAudioNodes[ i ] ) {
 			if ( this._state === STATE.listening || this._state === STATE.recording ) {
 				this._disconnect();
@@ -271,7 +271,7 @@ LinguaRecorder.prototype._sendCommandToProcessor = function( command ) {
  */
 LinguaRecorder.prototype._fire = function( event, value ) {
 	if ( event in this._eventHandlers ) {
-		for ( var i=0; i<this._eventHandlers[ event ].length; i++ ) {
+		for ( let i = 0; i < this._eventHandlers[ event ].length; i++ ) {
 			this._eventHandlers[ event ][ i ]( value );
 		}
 	}
@@ -293,18 +293,17 @@ LinguaRecorder.prototype._fire = function( event, value ) {
  *
  * @private
  */
-LinguaRecorder.prototype._getAudioStream = function() {
-	var recorder = this;
-
-	// Current best practice to get the audio stream according to the specs
-	navigator.mediaDevices.getUserMedia({audio: true, video:false})
-	.then(function(localMediaStream) {
-		recorder.stream = localMediaStream;
-		recorder._initStream();
-		recorder._fire( 'ready', localMediaStream );
-	} ).catch(function(err) {
-		recorder._fire( 'readyFail', err );
-	} );
+LinguaRecorder.prototype._getAudioStream = async function() {
+	try {
+		this.stream = await navigator.mediaDevices.getUserMedia({audio: true, video:false})
+	}
+	catch (error) {
+		this._fire( 'readyFail', error );
+		return;
+	}
+	
+	this._initStream();
+	this._fire( 'ready', this.stream );
 };
 
 
@@ -316,52 +315,52 @@ LinguaRecorder.prototype._getAudioStream = function() {
  *
  * @private
  */
-LinguaRecorder.prototype._initStream = function() {
+LinguaRecorder.prototype._initStream = async function() {
 	var recorder = this;
 
 	this.audioContext = new window.AudioContext();
 	this.audioInput = this.audioContext.createMediaStreamSource( this.stream );
 
+	await this.audioContext.audioWorklet.addModule('../src/RecordingProcessor.js')
+	
 	this.recordProcessorConfig.sampleRate = this.audioContext.sampleRate;
-	this.audioContext.audioWorklet.addModule('../src/RecordingProcessor.js').then(() => { //TODO: use async/await as support of older browsers is not an issue anymore
-		this.processor = new AudioWorkletNode( this.audioContext, 'recording-processor', { processorOptions: this.recordProcessorConfig } ); //TODO: include a polify for older browsers?
+	this.processor = new AudioWorkletNode( this.audioContext, 'recording-processor', { processorOptions: this.recordProcessorConfig } ); //TODO: include a polify for older browsers?
 
-		this.audioInput.connect( this.processor );
-		
-		this.processor.port.onmessage = (event) => {
-			console.log("LR:", event.data.message)
-			switch (event.data.message) {
-				case 'started':
-					this._state = STATE.recording;
-					this._fire( 'started' );
-					break;
-				case 'listening':
-					this._state = STATE.listening;
-					this._fire( 'listening', event.data.samples );
-					break;
-				case 'recording':
-					this._state = STATE.recording;
-					this._fire( 'recording', event.data.samples );
-					break;
-				case 'saturated':
-					this._fire( 'saturated' );
-					break;
-				case 'paused':
-					this._state = STATE.paused;
-					this._fire( 'paused' );
-					break;
-				case 'stoped':
-					this._state = STATE.stop;
-					var audioRecord = new AudioRecord( event.data.record, this.audioContext.sampleRate )
-					this._fire( 'stoped', audioRecord );
-					break;
-				case 'canceled':
-					this._state = STATE.stop;
-					this._fire( 'canceled', event.data.reason );
-					break;
-			}
-		};
-	} );
+	this.audioInput.connect( this.processor );
+	
+	this.processor.port.onmessage = (event) => {
+		console.log("LR:", event.data.message)
+		switch (event.data.message) {
+			case 'started':
+				this._state = STATE.recording;
+				this._fire( 'started' );
+				break;
+			case 'listening':
+				this._state = STATE.listening;
+				this._fire( 'listening', event.data.samples );
+				break;
+			case 'recording':
+				this._state = STATE.recording;
+				this._fire( 'recording', event.data.samples );
+				break;
+			case 'saturated':
+				this._fire( 'saturated' );
+				break;
+			case 'paused':
+				this._state = STATE.paused;
+				this._fire( 'paused' );
+				break;
+			case 'stoped':
+				this._state = STATE.stop;
+				var audioRecord = new AudioRecord( event.data.record, this.audioContext.sampleRate )
+				this._fire( 'stoped', audioRecord );
+				break;
+			case 'canceled':
+				this._state = STATE.stop;
+				this._fire( 'canceled', event.data.reason );
+				break;
+		}
+	};
 };
 
 
@@ -378,7 +377,7 @@ LinguaRecorder.prototype._connect = function() {
 	//TODO: update this
 
 	var currentNode = this.audioInput;
-	for ( var i=0; i < this._extraAudioNodes.length; i++ ) {
+	for ( let i=0; i < this._extraAudioNodes.length; i++ ) {
 		currentNode.connect( this._extraAudioNodes[ i ] );
 		currentNode = this._extraAudioNodes[ i ];
 	}
@@ -392,7 +391,7 @@ LinguaRecorder.prototype._connect = function() {
  */
 LinguaRecorder.prototype._disconnect = function() {
 	//TODO: update this
-	for ( var i=0; i < this._extraAudioNodes.length; i++ ) {
+	for ( let i=0; i < this._extraAudioNodes.length; i++ ) {
 		this._extraAudioNodes[ i ].disconnect();
 	}
 }

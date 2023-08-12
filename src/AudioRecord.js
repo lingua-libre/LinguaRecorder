@@ -123,7 +123,7 @@ AudioRecord.prototype.play = function() {
 
 	var buffer = audioContext.createBuffer(1, this.samples.length, 48000); //samplerate
 	var channelData = buffer.getChannelData(0);
-	for ( var i = 0; i < this.samples.length; i++ ) {
+	for ( let i = 0; i < this.samples.length; i++ ) {
 		channelData[i] = this.samples[ i ];
 	}
 
@@ -173,7 +173,7 @@ AudioRecord.prototype.getBlob = function() {
 	/* data chunk length */
 	view.setUint32(40, this.samples.length * 2, true);
 
-	for (var i = 0; i < this.samples.length; i++){
+	for ( let i = 0; i < this.samples.length; i++ ){
 		/* Turn a 0->1 amplitude to 0->0x7FFF (highest number possible in a signed 16bits integer) */
 		sample = parseInt( this.samples[i] * 0x7FFF );
 		/* Get rid of banned samples by incrementing it */
@@ -267,7 +267,7 @@ AudioRecord.prototype.getAudioElement = function () {
  * @param {String} [str] String to write in the DataView.
  */
 function writeString( dataview, offset, str ) {
-	for ( var i = 0; i < str.length; i++ ){
+	for ( let i = 0; i < str.length; i++ ){
 		dataview.setUint8( offset + i, str.charCodeAt( i ) );
 	}
 };
