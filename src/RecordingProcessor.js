@@ -191,7 +191,6 @@ function recordingProcessorEncapsulation() {
 			this._isSaturated = false;
 
 			this.port.onmessage = ( event ) => {
-				console.log("RP:", event.data.message)
 				switch ( event.data.message ) {
 					case 'start':
 						this._start();

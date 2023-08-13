@@ -153,13 +153,13 @@ class AudioRecord {
 			view = new DataView(buffer);
 
 		/* RIFF identifier */
-		writeString(view, 0, 'RIFF');
+		AudioRecord.writeString(view, 0, 'RIFF');
 		/* file length */
 		view.setUint32(4, 32 + this.samples.length * 2, true);
 		/* RIFF type */
-		writeString(view, 8, 'WAVE');
+		AudioRecord.writeString(view, 8, 'WAVE');
 		/* format chunk identifier */
-		writeString(view, 12, 'fmt ');
+		AudioRecord.writeString(view, 12, 'fmt ');
 		/* format chunk length */
 		view.setUint32(16, 16, true);
 		/* sample format (raw) */
@@ -175,7 +175,7 @@ class AudioRecord {
 		/* bits per sample */
 		view.setUint16(34, 16, true);
 		/* data chunk identifier */
-		writeString(view, 36, 'data');
+		AudioRecord.writeString(view, 36, 'data');
 		/* data chunk length */
 		view.setUint32(40, this.samples.length * 2, true);
 
@@ -260,23 +260,25 @@ class AudioRecord {
 		audio.appendChild( source );
 		return audio;
 	}
+
+
+	/**
+	 * Internal static helper function used in getBlob to write a complete string at once
+	 * in a DataView object.
+	 *
+	 * @static
+	 * @param {DataView} [dataview] DataView in which to write.
+	 * @param {Number} [offset] Offset at which writing should start.
+	 * @param {String} [str] String to write in the DataView.
+	 * @private
+	 */
+	static writeString( dataview, offset, str ) {
+		for ( let i = 0; i < str.length; i++ ){
+			dataview.setUint8( offset + i, str.charCodeAt( i ) );
+		}
+	}
 }
 
 
 
-
-/**
- * Internal helper function used in getBlob to write a complete string at once
- * in a DataView object.
- *
- * @param {DataView} [dataview] DataView in which to write.
- * @param {Number} [offset] Offset at which writing should start.
- * @param {String} [str] String to write in the DataView.
- */
-//TODO: change this as a static method
-function writeString( dataview, offset, str ) {
-	for ( let i = 0; i < str.length; i++ ){
-		dataview.setUint8( offset + i, str.charCodeAt( i ) );
-	}
-};
 

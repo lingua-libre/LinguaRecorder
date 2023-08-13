@@ -337,7 +337,6 @@ class LinguaRecorder {
 		this.audioInput.connect( this.processor );
 
 		this.processor.port.onmessage = (event) => {
-			console.log("LR:", event.data.message)
 			switch (event.data.message) {
 				case 'started':
 					this._state = STATE.recording;
