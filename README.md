@@ -17,18 +17,23 @@ LinguaRecorder is a fast cross-browser voice recording JS library.
 
 ### Browser Compatibility
 Tested in the following browsers/versions:
-* Firefox 25+
-* Chrome 22+
-* Firefox for android\* 57+
-* Chrome for android\* 63+
-* Microsoft Edge 12+
-* Safari 11+
-* Opera 18+
+
+|                     | master branch | legacy branch |
+|---------------------|---------------|---------------|
+| Firefox             | 76+           | 25+           |
+| Chrome              | 66+           | 22+           |
+| Firefox for androïd | 79+           | 57+ *         |
+| Chrome for androïd  | 66+           | 63+ *         |
+| Microsoft Edge      | 79+           | 12+           |
+| Safari              | 14.1+         | 11+           |
+| Opera               | 53+           | 18+           |
 
 It may work on older versions of the browsers marked with \*, but it has not been tested.
 
+The _master branch_ uses internaly the new [AudioWorklet API](https://developer.mozilla.org/fr/docs/Web/API/AudioWorklet), whereas the _legacy branch_ uses the old and now deprecated [BaseAudioContext:createScriptProcessor method](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createScriptProcessor).
+
 ### Live demos
-The LinguaRecorder sandbox ([old](https://lingualibre.org/demo/sandbox.html)|[last](https://lingua-libre.github.io/LinguaRecorder/demo/sandbox.html)) allows you to get familiar with (hardly) all features of the library, and to play with it's configuration possibilities.
+The [LinguaRecorder sandbox](https://lingua-libre.github.io/LinguaRecorder/demo/sandbox.html) allows you to get familiar with (hardly) all features of the library, and to play with it's configuration possibilities.
 
 The demo folder contain several other implementation examples.
 
@@ -51,8 +56,9 @@ Get the code:
 * Install with [npm](https://www.npmjs.com/package/lingua-recorder): `npm install lingua-recorder`
 * Use a CDN: _todo_
 
-Then include the two files stored in the src folder in your HTML page:
+Then include the three files stored in the src folder in your HTML page:
 ```html
+<script src="/path/to/RecordingProcessor.js"></script>
 <script src="/path/to/AudioRecord.js"></script>
 <script src="/path/to/LinguaRecorder.js"></script>
 <script>
@@ -104,19 +110,25 @@ Duration value in seconds. Only used if autoStop is set to _true_.
 Duration value in seconds. Discard the record if it last less than minDuration. Default value to _0.15_, use _0_ to disable.
 
 ### Methods
+#### constructor([config])
+Creates a new LinguaRecorder instance.
+
+* __config__: `Object` `optional` Configuration options as described aboe.
+* __⇒__ `this`
+
 #### start()
 Start to record.
 
 If _autoStart_ is set to true, enter in listening state and postpone the start of the recording when a voice will be detected.
 
-* __⇒__ `boolean` Has the record being started or not. If false, that means either the recorder is not initialized yet, or a record is already in progress.
+* __⇒__ `this`
 
 #### pause()
 Switch the record to the pause state.
 
 While in pause, all the inputs comming from the microphone will be ignored. To resume to the recording state, just call the start() method again. It is also still possible to stop() or cancel() a record, and you have to do so upstream if you wish to start a new one.
 
-* __⇒__ `boolean` Has the record being paused or not.
+* __⇒__ `this`
 
 #### stop([cancelRecord])
 Stop the recording process and fire the record to the user.
@@ -126,15 +138,17 @@ Depending of the configuration, this method could discard the record if it fails
 To start a new record afterwards, just call the _start()_ method again.
 
 * __cancelRecord__: `boolean` `optional` If set to _true_, cancel and discard the record in any cases.
-* __⇒__ `boolean` Has the record being stopped or not.
+* __⇒__ `this`
 
 #### cancel()
 Stop a recording, but without saving the record. This is an alias for `stop( true )`.
 
-* __⇒__ `boolean` Has the record being stopped or not.
+* __⇒__ `this`
 
 #### toggle()
 Toggle between the recording and stopped state.
+
+* __⇒__ `this`
 
 #### on(event, handler)
 Attach a handler function to a given event.
@@ -203,9 +217,80 @@ see https://developer.mozilla.org/fr/docs/Web/API/AudioContext
 * __pause__: It was recording, but a dog just walked in so you paused the record the time to kick it away, but you wish to finish it later.
 
 ## AudioRecord
-_to do_
+### Methods
+#### constructor(samples, sampleRate)
+Creates a new AudioRecord instance.
+
+* __samples__: `Float32Array` The raw samples that will make up the record.
+* __sampleRate__: `Number` Rate at witch the samples added to this object should be played.
+* __⇒__ `this`
+
+#### setSampleRate(value)
+Change the declared sample rate.
+
+* __value__: `Number` new sample rate to set.
+
+#### getSampleRate()
+Get the sample rate in use.
+* __⇒__ `Number` Sample rate of the record.
+
+#### getLength()
+Get the total number of samples in the record.
+* __⇒__ `Number` Number of samples.
+
+#### getDuration()
+Get the duration of the record.
+This is based on the number of samples and the declared sample rate.
+
+* __⇒__ `Number` Duration (in seconds) of the record.
+
+#### getSamples()
+Get all the raw samples that make up the record.
+
+* __⇒__ `Float32Array` List of all samples.
+
+#### ltrim(duration)
+Trim the record, starting with the beginning of the record (the left side).
+
+* __duration__: `Number` duration (in seconds) to trim.
+
+#### rtrim(duration)
+Trim the record, starting with the end of the record (the right side).
+
+* __duration__: `Number` duration (in seconds) to trim.
+
+#### clear()
+Clear the record.
+
+#### play()
+Play the record to the audio output (aka the user's loudspeaker).
+
+#### getBlob()
+Get a WAV-encoded Blob version of the record.
+
+* __⇒__ `Blob` WAV-encoded audio record.
+
+#### getWAVE()
+_Alias of getBlob()_
+
+#### getObjectURL()
+Generate an object URL representing the WAV-encoded record.
+For performance reasons, you should unload the objectURL once you're done with it, see https://developer.mozilla.org/en-US/docs/Web/API/URL/revokeObjectURL
+
+* __⇒__ `DOMString` URL representing the record.
+
+#### download(fileName)
+Start the download process of the record as if it where a normal file.
+
+* __fileName__: `String` `optional` name of the file that will be downloaded, default to 'record.wav'.
+
+#### getAudioElement()
+Generate an HTML5 `<audio>` element containing the WAV-encoded record.
+
+* __⇒__ `HTMLElement` audio element containing the record.
+
 
 ### Licence
 The LinguaRecorder was originaly a part of [LinguaLibre](https://lingualibre.fr), developped by Nicolas Vion ([@zmoostik](https://github.com/zmoostik)), but has then been splitted out and completely rewritten by Antoine Lamielle ([@0x010C](https://github.com/0x010C)).
 
-Released under the [GPL v3 License](https://github.com/lingua-libre/LinguaRecorder/blob/master/LICENSE).
+Released under the [MIT License](https://github.com/lingua-libre/LinguaRecorder/blob/master/LICENSE).
