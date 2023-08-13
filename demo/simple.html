@@ -10,6 +10,7 @@
 			integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE="
 			crossorigin="anonymous"></script>
 
+        <script type="text/javascript" src="../src/RecordingProcessor.js"></script>
 		<script type="text/javascript" src="../src/AudioRecord.js"></script>
 		<script type="text/javascript" src="../src/LinguaRecorder.js"></script>
 		<script type="text/javascript" src="./js/Studio.js"></script>
@@ -17,9 +18,7 @@
 		<script type="text/javascript">
 		    'use strict';
 		    $( function() {
-		        new LinguaRecorder().on('ready', function() {
-		            window.manualStudio = new ManualStudio( { $element: $( '#manualstudio' ) } );
-		        } );
+		        window.manualStudio = new ManualStudio( { $element: $( '#manualstudio' ) } );
 		    } );
 		</script>
 	</head>

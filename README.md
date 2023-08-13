@@ -79,9 +79,6 @@ Set to true to wait for voice detection before effectively starting the record w
 ##### autoStop `boolean` `false`
 Set to true to stop the record when there is a silence.
 
-##### bufferSize `number` `4096`
-Set the size of the samples buffers. Could be 0 (let the browser choose the best one) or one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384; the less the more precise, the higher the more efficient.
-
 ##### timeLimit `number` `0`
 Maximum time (in seconds) after which it is necessary to stop recording. Set to 0 (default) for no time limit.
 

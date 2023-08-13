@@ -1,10 +1,5 @@
 'use strict';
 
-/*
-TODO
-- benefit from the MediaTrackConstraints when geting the stream
-- replace STATE
-*/
 
 const STATE = {
 	stop: 'stop',
@@ -355,6 +350,7 @@ class LinguaRecorder {
 	 * @private
 	 */
 	async _getAudioStream() {
+		// TODO: benefit from the MediaTrackConstraints when geting the stream https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints#instance_properties
 		try {
 			this.stream = await navigator.mediaDevices.getUserMedia({audio: true, video:false})
 		}
