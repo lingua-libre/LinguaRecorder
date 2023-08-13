@@ -25,6 +25,7 @@ class LinguaRecorder {
 	audioInput = null;
 	processor = null;
 	_state = STATE.stop;
+	_isConnected = false;
 	_duration = 0;
 	_extraAudioNodes = [];
 	_eventHandlers = {
@@ -65,7 +66,9 @@ class LinguaRecorder {
 			...this.recordProcessorConfig,
 			...config
 		};
-		this._sendCommandToProcessor( 'setconfig', this.recordProcessorConfig )
+
+		this._sendCommandToProcessor( 'setconfig', this.recordProcessorConfig );
+
 		return this;
 	}
 
@@ -110,6 +113,11 @@ class LinguaRecorder {
 	 * @chainable
 	 */
 	start() {
+		if ( this.processor === null ) {
+			return this;
+		}
+
+		this._connect();
 		return this._sendCommandToProcessor( 'start' );
 	}
 
@@ -217,12 +225,12 @@ class LinguaRecorder {
 	 * @chainable
 	 */
 	connectAudioNode( node ) {
-		//TODO: update this
-		if ( this._state === STATE.listening || this._state === STATE.recording ) {
+		var wasConnected = this._isConnected;
+		if ( this._isConnected ) {
 			this._disconnect();
 		}
 		this._extraAudioNodes.push( node );
-		if ( this._state === STATE.listening || this._state === STATE.recording ) {
+		if ( wasConnected ) {
 			this._connect();
 		}
 		return this;
@@ -239,19 +247,59 @@ class LinguaRecorder {
 	 * @chainable
 	 */
 	disconnectAudioNode( node ) {
-		//TODO: update this
 		for ( let i = 0; i < this._extraAudioNodes.length; i++ ) {
 			if ( node === this._extraAudioNodes[ i ] ) {
-				if ( this._state === STATE.listening || this._state === STATE.recording ) {
+				let wasConnected = this._isConnected;
+				if ( this._isConnected ) {
 					this._disconnect();
 				}
 				this._extraAudioNodes.splice( i, 1 );
-				if ( this._state === STATE.listening || this._state === STATE.recording ) {
+				if ( wasConnected ) {
 					this._connect();
 				}
 				break;
 			}
 		}
+		return this;
+	}
+
+
+	/**
+	 * Cleanly stop the threaded execution of the audio recorder in preparation
+	 * for the destruction of the current LinguaRecorder instance.
+	 * 
+	 * This method has to be called, otherwise memory leak will happend.
+	 *
+	 * @chainable
+	 */
+	close() {
+		if ( this.processor === null ) {
+			return;
+		}
+
+		// Remove all event handlers
+		this.off( 'ready' )
+			.off( 'readyFail' )
+			.off( 'started' )
+			.off( 'listening' )
+			.off( 'recording' )
+			.off( 'saturated' )
+			.off( 'paused' )
+			.off( 'stoped' )
+			.off( 'canceled' );
+		this._eventStorage = {};
+
+		// Tell the RecordingProcessor it has to stop
+		this._sendCommandToProcessor( 'close' );
+
+		// Disconnect all audio nodes
+		this._disconnect();
+
+		// Properly delete the processor node
+		this.processor.port.onmessage = null;
+		this.processor.port.close();
+		this.processor = null;
+
 		return this;
 	}
 
@@ -315,7 +363,7 @@ class LinguaRecorder {
 			return;
 		}
 
-		this._initStream();
+		await this._initStream();
 		this._fire( 'ready', this.stream );
 	}
 
@@ -341,10 +389,8 @@ class LinguaRecorder {
 		this.recordProcessorConfig.sampleRate = this.audioContext.sampleRate;
 		this.processor = new AudioWorkletNode( this.audioContext, 'recording-processor', { processorOptions: this.recordProcessorConfig } );
 
-		this.audioInput.connect( this.processor );
-
 		this.processor.port.onmessage = (event) => {
-			switch (event.data.message) {
+			switch ( event.data.message ) {
 				case 'started':
 					this._state = STATE.recording;
 					this._duration = 0;
@@ -370,11 +416,13 @@ class LinguaRecorder {
 				case 'stoped':
 					this._state = STATE.stop;
 					this._duration = 0;
+					this._disconnect();
 					this._fire( 'stoped', new AudioRecord( event.data.record, this.audioContext.sampleRate ) );
 					break;
 				case 'canceled':
 					this._state = STATE.stop;
 					this._duration = 0;
+					this._disconnect();
 					this._fire( 'canceled', event.data.reason );
 					break;
 			}
@@ -383,8 +431,7 @@ class LinguaRecorder {
 
 
 	/**
-	 * Connect the audioInput node to a processor node, choosen depending of the
-	 * current state of the recorder.
+	 * Connect the audioInput node to the processor node.
 	 *
 	 * If some AudioNodes are set through the connectAudioNode() method,
 	 * it connect them also in between.
@@ -392,13 +439,18 @@ class LinguaRecorder {
 	 * @private
 	 */
 	_connect() {
-		//TODO: update this
+		if ( this._isConnected ) {
+			return;
+		}
 
 		var currentNode = this.audioInput;
 		for ( let i = 0; i < this._extraAudioNodes.length; i++ ) {
 			currentNode.connect( this._extraAudioNodes[ i ] );
 			currentNode = this._extraAudioNodes[ i ];
 		}
+		currentNode.connect( this.processor );
+		
+		this._isConnected = true;
 	}
 
 
@@ -408,10 +460,17 @@ class LinguaRecorder {
 	 * @private
 	 */
 	_disconnect() {
-		//TODO: update this
+		if ( ! this._isConnected ) {
+			return;
+		}
+		
+		this.audioInput.disconnect();
 		for ( let i = 0; i < this._extraAudioNodes.length; i++ ) {
 			this._extraAudioNodes[ i ].disconnect();
 		}
+		this.processor.disconnect();
+		
+		this._isConnected = false;
 	}
 }
 

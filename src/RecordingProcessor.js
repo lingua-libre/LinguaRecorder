@@ -159,6 +159,7 @@ function recordingProcessorEncapsulation() {
 			marginAfter: 0.25,
 			minDuration: 0.15
 		};
+		_isRunning = true;
 		_state = STATE.stop;
 		_audioSamples = null;
 		_silenceSamplesCount = 0;
@@ -186,7 +187,7 @@ function recordingProcessorEncapsulation() {
 		constructor( options ) {
 			super();
 
-			this._setConfig( options );
+			this._setConfig( options.processorOptions );
 			this.port.onmessage = ( event ) => {
 				switch ( event.data.message ) {
 					case 'start':
@@ -212,6 +213,10 @@ function recordingProcessorEncapsulation() {
 						else {
 							this.start();
 						}
+						break;
+
+					case 'close':
+						this._isRunning = false;
 						break;
 
 					case 'setconfig':
@@ -328,6 +333,11 @@ function recordingProcessorEncapsulation() {
 		 * @return {Boolean} Whether or not to force the AudioWorkletNode to remain active
 		 */
 		process(inputs, outputs, parameters) {
+			
+			// Check that there is an audio input before doing anything
+			if ( inputs.length === 0 || inputs[0].length === 0 ) {
+				return this._isRunning;
+			}
 
 			if ( this._state === STATE.listening ) {
 				// Get the samples from the first channel of the first input available
@@ -344,7 +354,7 @@ function recordingProcessorEncapsulation() {
 				outputs[0][0][sample] = inputs[0][0][sample];
 			}
 			
-			return true; //needed to keep the processor alive
+			return this._isRunning; //needed to return true to keep the processor alive
 		}
 
 		/**

@@ -198,6 +198,12 @@ see https://developer.mozilla.org/fr/docs/Web/API/AudioContext
 
 * __⇒__ `AudioContext` The AudioContext object used by the recorder.
 
+#### close()
+Cleanly stop the threaded execution of the audio recorder in preparation for the destruction of the current LinguaRecorder instance.
+This method has to be called, otherwise memory leak will happend.
+
+* __⇒__ `this`
+
 ### Events
 * __ready__: `MediaStream` The user has allowed your script to use the microphone, the recorder is ready to start a record.
 * __readyFail__: `DOMException` Something got wrong during the initialisation; maybe the user has no microphone, or he has not allowed you to use it. For the full exceptions list, see https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions.
