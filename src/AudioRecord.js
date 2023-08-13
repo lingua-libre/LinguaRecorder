@@ -10,32 +10,38 @@ const BANNED_SAMPLES = [ 0x003F, 0x3F00, 0x6870, 0x7068 ];
 
 
 /**
- * AudioRecord
- *
- * @constructor
- * @param {number} [sampleRate] Rate at witch the samples added to this object should be played
+ * @class AudioRecord
+ * Represents an audio recording and provides a handset of helper functions
+ * to exploit it in different contexts.
  */
 class AudioRecord {
-    constructor( samples, sampleRate ) {
-	    this.sampleRate = sampleRate;
-	    this.samples = samples;
-    }
-    
-    
-    /**
-     * Change the sample rate.
-     *
-     * @param {number} [value] new sample rate to set.
-     */
-    setSampleRate( value ) {
-	    this.sampleRate = value;
-    }
+
+	/**
+	 * Creates a new AudioRecord instance.
+	 * 
+	 * @param {Float32Array} [samples] The raw samples that will make up the record
+	 * @param {Number} [sampleRate] Rate at witch the samples added to this object should be played
+	 */
+	constructor( samples, sampleRate ) {
+		this.sampleRate = sampleRate;
+		this.samples = samples;
+	}
+
+
+	/**
+	 * Change the sample rate.
+	 *
+	 * @param {Number} [value] new sample rate to set.
+	 */
+	setSampleRate( value ) {
+		this.sampleRate = value;
+	}
 
 
 	/**
 	 * Get the sample rate in use.
 	 *
-	 * @return {number} Current sample rate for the record.
+	 * @return {Number} Current sample rate for the record.
 	 */
 	getSampleRate() {
 		return this.sampleRate;
@@ -45,19 +51,19 @@ class AudioRecord {
 	/**
 	 * Get the total number of samples in the record.
 	 *
-	 * @return {number} number of samples.
+	 * @return {Number} Number of samples.
 	 */
 	getLength() {
 		return this.samples.length;
 	}
-    
+
 
 	/**
 	 * Get the duration of the record.
 	 *
 	 * This is based on the number of samples and the declared sample rate.
 	 *
-	 * @return {number} duration (in seconds) of the record.
+	 * @return {Number} Duration (in seconds) of the record.
 	 */
 	getDuration() {
 		return this.samples.length / this.sampleRate;
@@ -67,7 +73,7 @@ class AudioRecord {
 	/**
 	 * Get all the raw samples that make up the record.
 	 *
-	 * @return {Float32Array} list of all samples.
+	 * @return {Float32Array} List of all samples.
 	 */
 	getSamples() {
 		return this.samples;
@@ -77,7 +83,7 @@ class AudioRecord {
 	/**
 	 * Trim the record, starting with the beginning of the record (the left side).
 	 *
-	 * @param {number} [duration] duration (in seconds) to trim
+	 * @param {Number} [duration] duration (in seconds) to trim.
 	 */
 	ltrim( duration ) {
 		var nbSamplesToRemove = Math.round( duration * this.sampleRate );
@@ -94,7 +100,7 @@ class AudioRecord {
 	/**
 	 * Trim the record, starting with the end of the record (the right side).
 	 *
-	 * @param {number} [duration] duration (in seconds) to trim
+	 * @param {Number} [duration] duration (in seconds) to trim.
 	 */
 	rtrim( duration ) {
 		var nbSamplesToRemove = Math.round( duration * this.sampleRate );
@@ -103,7 +109,7 @@ class AudioRecord {
 			this.clear();
 			return;
 		}
-		
+
 		this.samples = this.samples.subarray( 0, this.samples.length - nbSamplesToRemove );
 	}
 
@@ -117,7 +123,7 @@ class AudioRecord {
 
 
 	/**
-	 * Play the record to the audio output (aka the user's loudspeaker)
+	 * Play the record to the audio output (aka the user's loudspeaker).
 	 */
 	play() {
 		var audioContext = new window.AudioContext();
@@ -213,7 +219,7 @@ class AudioRecord {
 	/**
 	 * Start the download process of the record as if it where a normal file.
 	 *
-	 * @param {String} [fileName='record.wav'] name of the file that will be downloaded
+	 * @param {String} [fileName='record.wav'] name of the file that will be downloaded.
 	 */
 	download( fileName ) {
 		var a = document.createElement( 'a' ),
@@ -264,9 +270,10 @@ class AudioRecord {
  * in a DataView object.
  *
  * @param {DataView} [dataview] DataView in which to write.
- * @param {number} [offset] Offset at which writing should start.
+ * @param {Number} [offset] Offset at which writing should start.
  * @param {String} [str] String to write in the DataView.
  */
+//TODO: change this as a static method
 function writeString( dataview, offset, str ) {
 	for ( let i = 0; i < str.length; i++ ){
 		dataview.setUint8( offset + i, str.charCodeAt( i ) );

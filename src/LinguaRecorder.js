@@ -1,5 +1,11 @@
 'use strict';
 
+/*
+TODO
+- benefit from the MediaTrackConstraints when geting the stream
+- replace STATE
+*/
+
 const STATE = {
 	stop: 'stop',
 	listening: 'listen',
@@ -7,65 +13,60 @@ const STATE = {
 	paused: 'pause',
 }
 
-/*
-TODO
-- benefit from the MediaTrackConstraints when geting the stream
-- replace STATE
-*/
 
 /**
- *
- *
- * @constructor
- * @param {Object} [config] Configuration options
- * @cfg {boolean} [autoStart=false] Set to true to wait for voice detection when calling the start() method.
- * @cfg {boolean} [autoStop=false] Set to true to stop the record when there is a silence.
- * @cfg {number} [bufferSize=4096] Set the size of the samples buffers. Could be 0 (let the browser choose the best one) or one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384; the less the more precise, the higher the more efficient.
- * @cfg {number} [timeLimit=0] Maximum time (in seconds) after which it is necessary to stop recording. Set to 0 (default) for no time limit.
- * @cfg {string} [onSaturate='none'] Tell what to do when a record is saturated. Accepted values are 'none' (default), 'cancel' and 'discard'.
- * @cfg {number} [saturationThreshold=0.99] Amplitude value between 0 and 1 included. Only used if onSaturate is different from 'none'. Threshold above which a record should be flagged as saturated.
- * @cfg {number} [startThreshold=0.1] Amplitude value between 0 and 1 included. Only used if autoStart is set to true. Amplitude to reach to auto-start the recording.
- * @cfg {number} [stopThreshold=0.05] Amplitude value between 0 and 1 included. Only used if autoStop is set to true. Amplitude not to exceed in a stopDuration interval to auto-stop recording.
- * @cfg {number} [stopDuration=0.3] Duration value in seconds. Only used if autoStop is set to true. Duration during which not to exceed the stopThreshold in order to auto-stop recording.
- * @cfg {number} [marginBefore=0.25] Duration value in seconds. Only used if autoStart is set to true.
- * @cfg {number} [marginAfter=0.25] Duration value in seconds. Only used if autoStop is set to true.
- * @cfg {number} [minDuration=0.15] Duration value in seconds. Discard the record if it last less than minDuration. Default value to 0.15, use 0 to disable.
+ * @class LinguaRecorder
+ * Provides many powerful tools to easily perform audio recordings.
  */
-
 class LinguaRecorder {
+	stream = null;
+	recordProcessorConfig = {};
+	_state = STATE.stop;
+	_extraAudioNodes = [];
+	_eventHandlers = {
+		ready: [],
+		readyFail: [],
+		started: [],
+		listening: [],
+		recording: [],
+		saturated: [],
+		paused: [],
+		stoped: [],
+		canceled: [],
+	};
+	_eventStorage = {
+		ready: null,
+		readyFail: null,
+	};
+
+	/**
+	 * Creates a new LinguaRecorder instance
+	 * 
+	 * @param {Object} [config] Configuration options to pass to the RecordingProcessor
+	 */
 	constructor( config ) {
-		this.stream = null;
-
-		// TODO: create a setConfig method
-		this.recordProcessorConfig = config || {};
-
-		this._state = STATE.stop;
-
-		this._eventHandlers = {
-			ready: [],
-			readyFail: [],
-			started: [],
-			listening: [],
-			recording: [],
-			saturated: [],
-			paused: [],
-			stoped: [],
-			canceled: [],
-		};
-		this._eventStorage = {
-			ready: null,
-			readyFail: null,
-		};
-		this._extraAudioNodes = [];
-
+		this.setConfig( config );
 		this._getAudioStream();
+	}
+
+
+	/**
+	 * Change the processor configuration.
+	 *
+	 * @param {Object} [config] Configuration options, see the constructor for config documentation.
+	 * @chainable
+	 */
+	setConfig( config ) {
+		this.recordProcessorConfig = config || {};
+		// TODO: reload the AudioWorkletProcessor
+		return this;
 	}
 
 
 	/**
 	 * Return the current duration of the recording.
 	 *
-	 * @return {number} The duration in seconds
+	 * @return {Number} The duration in seconds
 	 */
 	getRecordingTime() {
 		//TODO: update this
@@ -76,7 +77,7 @@ class LinguaRecorder {
 	/**
 	 * Return the current state of the recorder.
 	 *
-	 * @return {string} One of the following: 'stop', 'listening', 'recording', 'paused'
+	 * @return {String} One of the following: 'stop', 'listening', 'recording', 'paused'
 	 */
 	getState() {
 		return this._state;
@@ -85,7 +86,6 @@ class LinguaRecorder {
 
 	/**
 	 * Return the audioContext initialised and used by the recorder.
-	 *
 	 * see https://developer.mozilla.org/fr/docs/Web/API/AudioContext
 	 *
 	 * @return {AudioContext} The AudioContext object used by the recorder.
@@ -131,10 +131,16 @@ class LinguaRecorder {
 	 *
 	 * To start a new record afterwards, just call the start() method again.
 	 *
+	 * @param {Boolean} [cancelRecord] (optional) If set to true, cancel and discard the record in any cases.
 	 * @chainable
 	 */
 	stop( cancelRecord ) {
-		return this._sendCommandToProcessor( 'stop' );
+		if ( cancelRecord === true ) {
+			this.cancel();
+		}
+		else {
+			return this._sendCommandToProcessor( 'stop' );
+		}
 	}
 
 
@@ -159,8 +165,8 @@ class LinguaRecorder {
 	/**
 	 * Attach a handler function to a given event.
 	 *
-	 * @param {string} [event] Name of an event.
-	 * @param {function} [handler] A function to execute when the event is triggered.
+	 * @param {String} [event] Name of an event.
+	 * @param {Function} [handler] A function to execute when the event is triggered.
 	 * @chainable
 	 */
 	on( event, handler ) {
@@ -180,7 +186,7 @@ class LinguaRecorder {
 	/**
 	 * Remove all the handler function from an event.
 	 *
-	 * @param {string} [event] Name of an event.
+	 * @param {String} [event] Name of an event.
 	 * @chainable
 	 */
 	off( event ) {
@@ -240,7 +246,6 @@ class LinguaRecorder {
 				break;
 			}
 		}
-
 		return this;
 	}
 
@@ -248,8 +253,9 @@ class LinguaRecorder {
 	/**
 	 * Send a message to the Recording Processor to change it's behaviour.
 	 * 
-	 * @param {string} [command] Name of the command to send.
+	 * @param {String} [command] Name of the command to send.
 	 * @chainable
+	 * @private
 	 */
 	_sendCommandToProcessor( command ) {
 		if ( this.processor !== undefined ) {
@@ -265,8 +271,8 @@ class LinguaRecorder {
 	 * For one-time events (ready, readyFail), stores the firered value
 	 * to be able to re-fire it for listners that are registered later
 	 *
-	 * @param {string} [event] Name of the event to fire.
-	 * @return {Object|Array|string|undefined} [value] Bounds if valid.
+	 * @param {String} [event] Name of the event to fire.
+	 * @param {Object|Array|String|Number} [value] (optional) Bounds if valid.
 	 * @private
 	 */
 	_fire( event, value ) {

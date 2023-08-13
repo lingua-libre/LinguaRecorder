@@ -1,5 +1,8 @@
 'use strict';
 
+// This function is only used to encapsulate the code, so that it can be
+// stringified, put in an objectURL and loaded as a Worklet module
+// from within the LinguaRecorder without having to know the path of this file.
 function recordingProcessorEncapsulation() {
 	const STATE = {
 		stop: 'stop',
@@ -9,13 +12,34 @@ function recordingProcessorEncapsulation() {
 	}
 
 
+	/**
+	 * @class AudioSamples
+	 * Internal class used to store and manage a set of audio samples
+	 * during the creation of an audio recording.
+	 * 
+	 * @private
+	 */
 	class AudioSamples {
+
+		/**
+		 * Creates a new AudioSamples instance.
+		 * 
+		 * @param {Number} [sampleRate] Rate at witch the samples added to this object should be played
+		 */
 		constructor( sampleRate ) {
 			this.sampleRate = sampleRate;
 			this.sampleBlocs = [];
 			this.length = 0;
 		}
 
+
+		/**
+		 * Add some raw samples to the record.
+		 *
+		 * @param {Float32Array} [samples] samples to append to the record
+		 * @param {Number} [rollingDuration=0] (optional) if set, last number of seconds of the record to keep after adding the new samples
+		 * @return {Number} the new total number of samples stored.
+		 */
 		push( samples, rollingDuration ) {
 			this.length += samples.length;
 			this.sampleBlocs.push( samples );
@@ -30,6 +54,12 @@ function recordingProcessorEncapsulation() {
 			return this.length;
 		}
 
+
+		/**
+		 * Get all the raw samples that make up the record.
+		 *
+		 * @return {Float32Array} list of all samples.
+		 */
 		get() {
 			var flattened = new Float32Array( this.length ),
 				nbBlocs = this.sampleBlocs.length,
@@ -43,10 +73,23 @@ function recordingProcessorEncapsulation() {
 			return flattened;
 		}
 
+
+		/**
+		 * Get the duration of the record.
+		 * This is based on the number of samples and the declared sample rate.
+		 *
+		 * @return {Number} duration (in seconds) of the record.
+		 */
 		getDuration() {
 			return this.length / this.sampleRate;
 		}
 
+
+		/**
+		 * Trim the record, starting with the beginning of the record (the left side).
+		 *
+		 * @param {Number} [duration] duration (in seconds) to trim
+		 */
 		ltrim( duration ) {
 			var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
@@ -65,6 +108,12 @@ function recordingProcessorEncapsulation() {
 			}
 		}
 
+
+		/**
+		 * Trim the record, starting with the end of the record (the right side).
+		 *
+		 * @param {Number} [duration] duration (in seconds) to trim
+		 */
 		rtrim( duration ) {
 			var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
@@ -87,7 +136,36 @@ function recordingProcessorEncapsulation() {
 
 
 
+	/**
+	 * @class RecordingProcessor
+	 * @extends AudioWorkletProcessor
+	 * Internal class used to do the audio recording process
+	 * on the Web Audio rendering thread
+	 * see https://developer.mozilla.org/en-US/docs/Web/API/AudioWorkletProcessor
+	 * 
+	 * @private
+	 */
 	class RecordingProcessor extends AudioWorkletProcessor {
+	
+		/**
+		 * Creates a new RecordingProcessor instance
+		 * It cannot be instantiated directly, it will be called internally by the creation of an associated AudioWorkletNode.
+		 * see https://developer.mozilla.org/en-US/docs/Web/API/AudioWorkletProcessor/AudioWorkletProcessor#syntax
+		 * 
+		 * @param {Object} [options] Configuration options
+		 * @cfg {Boolean} [autoStart=false] Set to true to wait for voice detection when calling the start() method.
+		 * @cfg {Boolean} [autoStop=false] Set to true to stop the record when there is a silence.
+		 * @cfg {Number} [bufferSize=4096] Set the size of the samples buffers. Could be 0 (let the browser choose the best one) or one of the following values: 256, 512, 1024, 2048, 4096, 8192, 16384; the less the more precise, the higher the more efficient.
+		 * @cfg {Number} [timeLimit=0] Maximum time (in seconds) after which it is necessary to stop recording. Set to 0 (default) for no time limit.
+		 * @cfg {String} [onSaturate='none'] Tell what to do when a record is saturated. Accepted values are 'none' (default), 'cancel' and 'discard'.
+		 * @cfg {Number} [saturationThreshold=0.99] Amplitude value between 0 and 1 included. Only used if onSaturate is different from 'none'. Threshold above which a record should be flagged as saturated.
+		 * @cfg {Number} [startThreshold=0.1] Amplitude value between 0 and 1 included. Only used if autoStart is set to true. Amplitude to reach to auto-start the recording.
+		 * @cfg {Number} [stopThreshold=0.05] Amplitude value between 0 and 1 included. Only used if autoStop is set to true. Amplitude not to exceed in a stopDuration interval to auto-stop recording.
+		 * @cfg {Number} [stopDuration=0.3] Duration value in seconds. Only used if autoStop is set to true. Duration during which not to exceed the stopThreshold in order to auto-stop recording.
+		 * @cfg {Number} [marginBefore=0.25] Duration value in seconds. Only used if autoStart is set to true.
+		 * @cfg {Number} [marginAfter=0.25] Duration value in seconds. Only used if autoStop is set to true.
+		 * @cfg {Number} [minDuration=0.15] Duration value in seconds. Discard the record if it last less than minDuration. Default value to 0.15, use 0 to disable.
+		 */
 		constructor( options ) {
 			super();
 
@@ -143,9 +221,16 @@ function recordingProcessorEncapsulation() {
 			};
 		}
 
+
+		/**
+		 * So some preparation and switch state to start to record.
+		 *
+		 * If autoStart is set to true, enter in listening state and postpone the start
+		 * of the recording when a voice will be detected.
+		 */
 		_start() {
 			if ( this._state === STATE.listening || this._state === STATE.recording ) {
-				return false;
+				return;
 			}
 
 			if ( this._state === STATE.stop ) {
@@ -155,19 +240,21 @@ function recordingProcessorEncapsulation() {
 
 				if ( this.autoStart ) {
 					this._state = STATE.listening;
-					return true;
+					return;
 				}
 			}
 
 			this._state = STATE.recording;
 			this.port.postMessage({ message: 'started' });
-
-			return true;
 		}
 
+
+		/**
+		 * Switch the record to the pause state.
+		 */
 		_pause() {
 			if ( this._state === STATE.stop || this._state === STATE.paused ) {
-				return false;
+				return;
 			}
 
 			if ( this._state === STATE.listening ) {
@@ -178,14 +265,22 @@ function recordingProcessorEncapsulation() {
 			}
 
 			this.port.postMessage({ message: 'paused' });
-			return true;
 		}
 
+
+		/**
+		 * Stop the recording process and send the record to the AudioWorkletNode.
+		 *
+		 * Depending of the configuration, this method could discard the record
+		 * if it fails some quality controls (duration and saturation).
+		 * 
+		 * @param {Boolean} [cancelRecord] (optional) If set to true, cancel and discard the record in any cases.
+		 */
 		_stop( cancelRecord ) {
-			var cancelRecord = false || cancelRecord;
+			cancelRecord = false || cancelRecord;
 
 			if ( this._state === STATE.stop ) {
-				return false;
+				return;
 			}
 
 			if ( cancelRecord === true ) {
@@ -204,17 +299,30 @@ function recordingProcessorEncapsulation() {
 				this.port.postMessage({ message: 'stoped', record: this._audioSamples.get() });
 			}
 
-			this._state = STATE.stop
-
-			return true;
+			this._state = STATE.stop;
 		}
 
-		process(inputs, outputs, params) {
+		/**
+		 * Process and save audio inputs depending of the current state of the recorder.
+		 * 
+		 * It will be called synchronously from the audio rendering thread,
+		 * once every time a new block of audio is ready to be manipulated.
+		 * see https://developer.mozilla.org/en-US/docs/Web/API/AudioWorkletProcessor/process
+		 * 
+		 * @param {Array} [inputs] Array of inputs connected to the node, each containing an array of channels, each containing an Float32Array of samples.
+		 * @param {Array} [outputs] Array of outputs, which structure is similar to inputs
+		 * @param {Object} [parameters] unused
+		 * @return {Boolean} Whether or not to force the AudioWorkletNode to remain active
+		 */
+		process(inputs, outputs, parameters) {
 			if ( this._state === STATE.listening ) {
-				this._audioListeningProcess( inputs, outputs, params );
+				// Get the samples from the first channel of the first input available
+				// and copy them in a new Float32Array, to avoid memory dealocation
+				this._audioListeningProcess( new Float32Array( inputs[0][0] ) );
 			}
 			else if ( this._state === STATE.recording ) {
-				this._audioRecordingProcess( inputs, outputs, params );
+				// same as above
+				this._audioRecordingProcess( new Float32Array( inputs[0][0] ) );
 			}
 
 			// Pass data directly to output, unchanged. TODO: needed?
@@ -226,17 +334,13 @@ function recordingProcessorEncapsulation() {
 		}
 
 		/**
-		 * Event handler for the listening ScriptProcessorNode.
-		 *
 		 * Check whether it can auto-start recording, or store
 		 * the last marginBefore seconds incomming from the microphone.
-		 *
+		 * 
+		 * @param {Float32Array} [samples] Array of audio samples to process.
 		 * @private
 		 */
-		_audioListeningProcess( inputs, outputs, params ) {
-			// Get the samples from the input buffer
-			var samples = new Float32Array( inputs[0][0] ); // Copy the samples in a new Float32Array, to avoid memory dealocation
-
+		_audioListeningProcess( samples ) {
 			// Analyse the sound to autoStart when it should
 			for ( let i = 0; i < samples.length; i++ ) {
 				let amplitude = Math.abs( samples[ i ] );
@@ -257,20 +361,16 @@ function recordingProcessorEncapsulation() {
 
 
 		/**
-		 * Event handler for the recording ScriptProcessorNode.
+		 * Saves the incomming audio stream from the user's microphone
+		 * into the AudioSamples storage.
 		 *
-		 * In charge of saving the incomming audio stream from the user's microphone
-		 * into the rawAudioBuffer.
-		 *
-		 * Check also if the incomming sound is not saturated, if the timeLimit
+		 * Checks also if the incomming sound is not saturated, if the timeLimit
 		 * is not reached, and if the record should auto-stop.
 		 *
+		 * @param {Float32Array} [samples] Array of audio samples to process.
 		 * @private
 		 */
-		_audioRecordingProcess( inputs, outputs, params ) {
-			// Get the samples from the input buffer
-			var samples = new Float32Array( inputs[0][0] ); // Copy the samples in a new Float32Array, to avoid memory dealocation
-
+		_audioRecordingProcess( samples ) {
 			// Store the sound in the AudioRecord object
 			this._audioSamples.push( samples );
 			this.port.postMessage({ message: 'recording', samples: samples });
@@ -321,6 +421,7 @@ function recordingProcessorEncapsulation() {
 		}
 	}
 
+	// Register our AudioWorkletProcessor so it can be used by an AudioWorkletNode
 	registerProcessor('recording-processor', RecordingProcessor);
 }
 
