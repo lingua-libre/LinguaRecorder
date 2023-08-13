@@ -39,7 +39,7 @@ The demo folder contain several other implementation examples.
 
 # Documentation
 
-### Contents
+## Contents
 * [Quick Start](#quick-start)
 * [Examples](#examples)
 * [LinguaRecorder](#linguarecorder)
@@ -48,9 +48,10 @@ The demo folder contain several other implementation examples.
   * [Events](#events)
   * [States](#states)
 * [AudioRecord](#audiorecord)
+* [Version 2 migration](#version-2-migration)
 * [License](#license)
 
-### Quick Start
+## Quick Start
 Get the code:
 * Clone github repository: `git clone https://github.com/lingua-libre/LinguaRecorder.git`
 * Install with [npm](https://www.npmjs.com/package/lingua-recorder): `npm install lingua-recorder`
@@ -67,7 +68,7 @@ Then include the three files stored in the src folder in your HTML page:
 </script>
 ```
 
-### Examples
+## Examples
 _to do_
 
 ## LinguaRecorder
@@ -292,8 +293,21 @@ Generate an HTML5 `<audio>` element containing the WAV-encoded record.
 
 * __⇒__ `HTMLElement` audio element containing the record.
 
+## Version 2 migration
+As the `BaseAudioContext:createScriptProcessor` is now deprecated, it became important to migrate to the new `AudioWorklet` API. This change needed a deep rewrite of the library, but we wanted to keep the API as unchanged as possible. However, there are a few minor breaking changes to note:
 
-### Licence
+* A new file has to be included: src/RecordingProcessor.js
+* on _LinguaRecorder_:
+  * The methods `start`, `pause`, `stop`, `cancel` and `toggle` now return the current LinguaRecorder instance (to made it chainable) instead of a boolean.
+  * The `bufferSize` configuration option has been deleted.
+* The _AudioRecord_ class now only accepts data when it is created. For this reason:
+  * The `constructor` prototype has changed from `AudioRecord(sampleRate)` to `AudioRecord(samples, sampleRate)`.
+  * The `push` method was removed.
+
+Note also that using `AudioWorklet` breaks the [compatibility with old browsers](#browser-compatibility).
+  
+
+## Licence
 The LinguaRecorder was originaly a part of [LinguaLibre](https://lingualibre.fr), developped by Nicolas Vion ([@zmoostik](https://github.com/zmoostik)), but has then been splitted out and completely rewritten by Antoine Lamielle ([@0x010C](https://github.com/0x010C)).
 
 Released under the [MIT License](https://github.com/lingua-libre/LinguaRecorder/blob/master/LICENSE).
