@@ -21,7 +21,11 @@ const STATE = {
 class LinguaRecorder {
 	stream = null;
 	recordProcessorConfig = {};
+	audioContext = null;
+	audioInput = null;
+	processor = null;
 	_state = STATE.stop;
+	_duration = 0;
 	_extraAudioNodes = [];
 	_eventHandlers = {
 		ready: [],
@@ -57,8 +61,11 @@ class LinguaRecorder {
 	 * @chainable
 	 */
 	setConfig( config ) {
-		this.recordProcessorConfig = config || {};
-		// TODO: reload the AudioWorkletProcessor
+		this.recordProcessorConfig = {
+			...this.recordProcessorConfig,
+			...config
+		};
+		this._sendCommandToProcessor( 'setconfig', this.recordProcessorConfig )
 		return this;
 	}
 
@@ -69,8 +76,7 @@ class LinguaRecorder {
 	 * @return {Number} The duration in seconds
 	 */
 	getRecordingTime() {
-		//TODO: update this
-		return this._audioRecord.getDuration();
+		return this._duration;
 	}
 
 
@@ -254,12 +260,13 @@ class LinguaRecorder {
 	 * Send a message to the Recording Processor to change it's behaviour.
 	 * 
 	 * @param {String} [command] Name of the command to send.
+	 * @param {Object} [extra] (optional) Any extra data to send with the command.
 	 * @chainable
 	 * @private
 	 */
-	_sendCommandToProcessor( command ) {
-		if ( this.processor !== undefined ) {
-			this.processor.port.postMessage( { message: command } );
+	_sendCommandToProcessor( command, extra ) {
+		if ( this.processor !== null ) {
+			this.processor.port.postMessage( { message: command, extra: extra } );
 		}
 		return this;
 	}
@@ -340,14 +347,17 @@ class LinguaRecorder {
 			switch (event.data.message) {
 				case 'started':
 					this._state = STATE.recording;
+					this._duration = 0;
 					this._fire( 'started' );
 					break;
 				case 'listening':
 					this._state = STATE.listening;
+					this._duration = 0;
 					this._fire( 'listening', event.data.samples );
 					break;
 				case 'recording':
 					this._state = STATE.recording;
+					this._duration = event.data.duration;
 					this._fire( 'recording', event.data.samples );
 					break;
 				case 'saturated':
@@ -359,10 +369,12 @@ class LinguaRecorder {
 					break;
 				case 'stoped':
 					this._state = STATE.stop;
+					this._duration = 0;
 					this._fire( 'stoped', new AudioRecord( event.data.record, this.audioContext.sampleRate ) );
 					break;
 				case 'canceled':
 					this._state = STATE.stop;
+					this._duration = 0;
 					this._fire( 'canceled', event.data.reason );
 					break;
 			}

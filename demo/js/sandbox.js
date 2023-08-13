@@ -4,8 +4,8 @@ var recorder = null,
     graph = null;
 
 
-function initRecorder() {
-    recorder = new LinguaRecorder( {
+function getConfigFromInputs() {
+    return {
         autoStart: $("#autoStart").is(':checked'),
         autoStop: $("#autoStop").is(':checked'),
         bufferSize: parseInt($("#bufferSize").val()),
@@ -18,7 +18,11 @@ function initRecorder() {
         marginBefore: parseFloat($("#marginBefore").val()),
         marginAfter: parseFloat($("#marginAfter").val()),
         minDuration: parseFloat($("#minDuration").val()),
-    } );
+    };
+}
+
+function initRecorder() {
+    recorder = new LinguaRecorder( getConfigFromInputs() );
 
     recorder.on( 'ready', function() {
         /* Setup the graph with an analyser binded to our new recorder */
@@ -108,8 +112,8 @@ $( function() {
     initRecorder();
     /* But re-init it when the refresh button is clicked */
     $( '#refresh' ).click( function() {
-        recorder.stop();
-        initRecorder();
+        console.log("SB", getConfigFromInputs());
+        recorder.setConfig( getConfigFromInputs() );
     } );
 
 
@@ -125,5 +129,7 @@ $( function() {
     $( '#stop' ).click( function() {
         recorder.stop();
     } );
+    
+    window.recorder = recorder;
 
 } );

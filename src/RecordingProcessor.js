@@ -146,6 +146,23 @@ function recordingProcessorEncapsulation() {
 	 * @private
 	 */
 	class RecordingProcessor extends AudioWorkletProcessor {
+		config = {
+			autoStart: false,
+			autoStop: false,
+			timeLimit: 0,
+			onSaturate: 'none',
+			saturationThreshold: 0.99,
+			startThreshold: 0.1,
+			stopThreshold: 0.05,
+			stopDuration: 0.3,
+			marginBefore: 0.25,
+			marginAfter: 0.25,
+			minDuration: 0.15
+		};
+		_state = STATE.stop;
+		_audioSamples = null;
+		_silenceSamplesCount = 0;
+		_isSaturated = false;
 	
 		/**
 		 * Creates a new RecordingProcessor instance
@@ -169,27 +186,7 @@ function recordingProcessorEncapsulation() {
 		constructor( options ) {
 			super();
 
-			this.autoStart = options.processorOptions.autoStart === true;
-			this.autoStop = options.processorOptions.autoStop === true;
-			this.timeLimit = options.processorOptions.timeLimit || 0;
-			this.cancelOnSaturate = options.processorOptions.onSaturate === 'cancel';
-			this.discardOnSaturate = options.processorOptions.onSaturate === 'discard';
-			this.saturationThreshold = options.processorOptions.saturationThreshold || 0.99;
-
-			this.startThreshold = options.processorOptions.startThreshold === undefined ? 0.1 : options.processorOptions.startThreshold;
-			this.stopThreshold = options.processorOptions.stopThreshold === undefined ? 0.05 : options.processorOptions.stopThreshold;
-			this.stopDuration = options.processorOptions.stopDuration === undefined ? 0.3 : options.processorOptions.stopDuration;
-			this.marginBefore = options.processorOptions.marginBefore === undefined ? 0.25 : options.processorOptions.marginBefore;
-			this.marginAfter = options.processorOptions.marginAfter === undefined ? 0.25 : options.processorOptions.marginAfter;
-			this.minDuration = options.processorOptions.minDuration === undefined ? 0.15 : options.processorOptions.minDuration;
-
-			this.sampleRate = options.processorOptions.sampleRate;
-
-			this._state = STATE.stop;
-			this._audioSamples = null;
-			this._silenceSamplesCount = 0;
-			this._isSaturated = false;
-
+			this._setConfig( options );
 			this.port.onmessage = ( event ) => {
 				switch ( event.data.message ) {
 					case 'start':
@@ -216,8 +213,25 @@ function recordingProcessorEncapsulation() {
 							this.start();
 						}
 						break;
+
+					case 'setconfig':
+						this._setConfig( event.data.extra );
+						break;
 				}
 			};
+		}
+
+
+		/**
+		 * Set configuration options
+		 * 
+		 * @param {Object} [options] Configuration options
+		 */
+		_setConfig( options ) {
+			this.config = {
+				...this.config,
+				...options
+			}
 		}
 
 
@@ -233,11 +247,11 @@ function recordingProcessorEncapsulation() {
 			}
 
 			if ( this._state === STATE.stop ) {
-				this._audioSamples = new AudioSamples( this.sampleRate );
+				this._audioSamples = new AudioSamples( this.config.sampleRate );
 				this._silenceSamplesCount = 0;
 				this._isSaturated = false;
 
-				if ( this.autoStart ) {
+				if ( this.config.autoStart ) {
 					this._state = STATE.listening;
 					return;
 				}
@@ -286,11 +300,11 @@ function recordingProcessorEncapsulation() {
 				this._audioSamples = null;
 				this.port.postMessage({ message: 'canceled', reason: 'asked' });
 			}
-			else if ( ( this.discardOnSaturate || this.cancelOnSaturate ) && this._isSaturated ) {
+			else if ( ( this.config.onSaturate === 'discard' || this.config.onSaturate === 'cancel' ) && this._isSaturated ) {
 				this._audioSamples = null;
 				this.port.postMessage({ message: 'canceled', reason: 'saturated' });
 			}
-			else if ( this._audioSamples.getDuration() < this.minDuration ) {
+			else if ( this._audioSamples.getDuration() < this.config.minDuration ) {
 				this._audioSamples = null;
 				this.port.postMessage({ message: 'canceled', reason: 'tooShort' });
 			}
@@ -314,6 +328,7 @@ function recordingProcessorEncapsulation() {
 		 * @return {Boolean} Whether or not to force the AudioWorkletNode to remain active
 		 */
 		process(inputs, outputs, parameters) {
+
 			if ( this._state === STATE.listening ) {
 				// Get the samples from the first channel of the first input available
 				// and copy them in a new Float32Array, to avoid memory dealocation
@@ -328,7 +343,7 @@ function recordingProcessorEncapsulation() {
 			for ( let sample = 0; sample < inputs[0][0].length; sample++ ) {
 				outputs[0][0][sample] = inputs[0][0][sample];
 			}
-
+			
 			return true; //needed to keep the processor alive
 		}
 
@@ -343,17 +358,17 @@ function recordingProcessorEncapsulation() {
 			// Analyse the sound to autoStart when it should
 			for ( let i = 0; i < samples.length; i++ ) {
 				let amplitude = Math.abs( samples[ i ] );
-				if ( amplitude > this.startThreshold ) {
+				if ( amplitude > this.config.startThreshold ) {
 					// start the record
 					this._state = STATE.recording;
 					this.port.postMessage({ message: 'started' });
-					return this._audioRecordingProcess( inputs, outputs, params );
+					return this._audioRecordingProcess( samples );
 				}
 			}
 
 			// Store the sound in the AudioRecord object
-			if ( this.marginBefore > 0 ) {
-				this._audioSamples.push( samples, this.marginBefore );
+			if ( this.config.marginBefore > 0 ) {
+				this._audioSamples.push( samples, this.config.marginBefore );
 			}
 			this.port.postMessage({ message: 'listening', samples: samples });
 		}
@@ -372,15 +387,15 @@ function recordingProcessorEncapsulation() {
 		_audioRecordingProcess( samples ) {
 			// Store the sound in the AudioRecord object
 			this._audioSamples.push( samples );
-			this.port.postMessage({ message: 'recording', samples: samples });
+			this.port.postMessage({ message: 'recording', samples: samples, duration: this._audioSamples.getDuration() }); //TODO: do not post messages at every loop (48000/128=375 times per seconds...)
 
 			// Check if the samples are not saturated
 			for ( let i = 0; i < samples.length; i++ ) {
 				let amplitude = Math.abs( samples[ i ] );
-				if ( amplitude > this.saturationThreshold ) {
+				if ( amplitude > this.config.saturationThreshold ) {
 					this.port.postMessage({ message: 'saturated' });
 					this._isSaturated = true;
-					if ( this.cancelOnSaturate ) {
+					if ( this.config.onSaturate === 'cancel' ) {
 						this._stop();
 						return;
 					}
@@ -389,7 +404,7 @@ function recordingProcessorEncapsulation() {
 			}
 
 			// Analyse the sound to autoStop if needed
-			if ( this.autoStop ) {
+			if ( this.config.autoStop ) {
 				let amplitudeMax = 0;
 				for ( let i = 0; i < samples.length; i++ ) {
 					let amplitude = Math.abs( samples[ i ] );
@@ -398,11 +413,11 @@ function recordingProcessorEncapsulation() {
 					}
 				}
 
-				if ( amplitudeMax < this.stopThreshold ) {
+				if ( amplitudeMax < this.config.stopThreshold ) {
 					this._silenceSamplesCount += samples.length;
 
-					if ( this._silenceSamplesCount >= ( this.stopDuration * this.sampleRate ) ) {
-						this._audioSamples.rtrim( this.stopDuration - this.marginAfter );
+					if ( this._silenceSamplesCount >= ( this.config.stopDuration * this.config.sampleRate ) ) {
+						this._audioSamples.rtrim( this.config.stopDuration - this.config.marginAfter );
 						this._stop();
 					}
 				}
@@ -412,8 +427,8 @@ function recordingProcessorEncapsulation() {
 			}
 
 			// If one is set, check if we have not reached the time limit
-			if ( this.timeLimit > 0 ) {
-				if ( this.timeLimit >= this._audioSamples.getDuration() ) {
+			if ( this.config.timeLimit > 0 ) {
+				if ( this.config.timeLimit >= this._audioSamples.getDuration() ) {
 					this._stop();
 				}
 			}
