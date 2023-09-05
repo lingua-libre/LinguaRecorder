@@ -9,7 +9,7 @@ function recordingProcessorEncapsulation() {
 		listening: 'listen',
 		recording: 'record',
 		paused: 'pause',
-	}
+	};
 
 
 	/**
