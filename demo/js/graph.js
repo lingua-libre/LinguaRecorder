@@ -36,7 +36,7 @@ Graph.prototype.draw = function() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // We increase artificially the bar width (times 1.3) to give more space
-    // to visibles bars (the last bars are always very close to 0)
+    // to visible bars (the last bars are always very close to 0)
     this.barWidth = this.canvas.width*1.3 / ( FFT_SIZE / 2 );
 
     // Draw the frequency domain chart

@@ -19,7 +19,7 @@
 		<script type="text/javascript">
 		    'use strict';
 		    $( function() {
-		        window.wordListStudio = new WordListStudio( { $element: $( '#wordliststudio' ) } );
+		        window.wordListStudio = new WordListStudio( { $element: $( '#word-list-studio' ) } );
 
 		        $( '.studio-wordlist input' ).keypress( function( e ) {
                     if ( ( e.which === 13 || e.which === 32 ) && $( '.studio-wordlist input' ).val().trim() !== '' ) {
@@ -34,11 +34,11 @@
 		</script>
 	</head>
 	<body>
-	    <div id="wordliststudio" class="studio mini">
+	    <div id="word-list-studio" class="studio mini">
 	        <div class="studio-head">
 	            <canvas class="studio-canvas hidden" width="0" height="0"></canvas>
-	            <div class="studio-rbutton">
-	                <button class="studio-rbutton-inner">
+	            <div class="studio-rButton">
+	                <button class="studio-rButton-inner">
 	                    <img class="studio-logo" src="./img/ll-logo-white.svg"/>
 	                </button>
 	            </div>
@@ -57,7 +57,7 @@
                 <li>mänele</li>
                 <input placeholder="Ajouter un mot">
 	        </ul>
-            <canvas class="studio-wordcanvas hidden"></canvas>
+            <canvas class="studio-wordCanvas hidden"></canvas>
 	    </div>
 	</body>
 </html>

@@ -31,7 +31,7 @@ class LinguaRecorder {
 		recording: [],
 		saturated: [],
 		paused: [],
-		stoped: [],
+		stopped: [],
 		canceled: [],
 	};
 	_eventStorage = {
@@ -62,7 +62,7 @@ class LinguaRecorder {
 			...config
 		};
 
-		this._sendCommandToProcessor( 'setconfig', this.recordProcessorConfig );
+		this._sendCommandToProcessor( 'setConfig', this.recordProcessorConfig );
 
 		return this;
 	}
@@ -89,7 +89,7 @@ class LinguaRecorder {
 
 
 	/**
-	 * Return the audioContext initialised and used by the recorder.
+	 * Return the audioContext initialized and used by the recorder.
 	 * see https://developer.mozilla.org/fr/docs/Web/API/AudioContext
 	 *
 	 * @return {AudioContext} The AudioContext object used by the recorder.
@@ -120,7 +120,7 @@ class LinguaRecorder {
 	/**
 	 * Switch the record to the pause state.
 	 *
-	 * While in pause, all the inputs comming from the microphone will be ignored.
+	 * While in pause, all the inputs coming from the microphone will be ignored.
 	 * To resume to the recording state, just call the start() method again.
 	 * It is also still possible to stop() or cancel() a record,
 	 * and you have to do so upstream if you wish to start a new one.
@@ -183,7 +183,7 @@ class LinguaRecorder {
 			this._eventHandlers[ event ].push( handler );
 		}
 
-		// For one-time events, re-fire it if it already occured
+		// For one-time events, re-fire it if it already occurred
 		if ( event in this._eventStorage && this._eventStorage[ event ] !== null ) {
 			handler( this._eventStorage[ event ] );
 		}
@@ -210,7 +210,7 @@ class LinguaRecorder {
 	/**
 	 * Add an extra AudioNode
 	 *
-	 * This can be used to draw a live visualisation of the sound, or to perform
+	 * This can be used to draw a live visualization of the sound, or to perform
 	 * some live editing tasks on the stream before it is recorded.
 	 *
 	 * Note that it can produce a little interrupt in the record if you are in
@@ -263,7 +263,7 @@ class LinguaRecorder {
 	 * Cleanly stop the threaded execution of the audio recorder in preparation
 	 * for the destruction of the current LinguaRecorder instance.
 	 * 
-	 * This method has to be called, otherwise memory leak will happend.
+	 * This method has to be called, otherwise memory leak will happened.
 	 *
 	 * @chainable
 	 */
@@ -280,7 +280,7 @@ class LinguaRecorder {
 			.off( 'recording' )
 			.off( 'saturated' )
 			.off( 'paused' )
-			.off( 'stoped' )
+			.off( 'stopped' )
 			.off( 'canceled' );
 		this._eventStorage = {};
 
@@ -300,7 +300,7 @@ class LinguaRecorder {
 
 
 	/**
-	 * Send a message to the Recording Processor to change it's behaviour.
+	 * Send a message to the Recording Processor to change it's behavior.
 	 * 
 	 * @param {String} [command] Name of the command to send.
 	 * @param {Object} [extra] (optional) Any extra data to send with the command.
@@ -316,10 +316,10 @@ class LinguaRecorder {
 
 
 	/**
-	 * Fire a give event to all the registred handlers functions.
+	 * Fire a give event to all the registered handlers functions.
 	 *
-	 * For one-time events (ready, readyFail), stores the firered value
-	 * to be able to re-fire it for listners that are registered later
+	 * For one-time events (ready, readyFail), stores the fired value
+	 * to be able to re-fire it for listeners that are registered later
 	 *
 	 * @param {String} [event] Name of the event to fire.
 	 * @param {Object|Array|String|Number} [value] (optional) Bounds if valid.
@@ -339,7 +339,7 @@ class LinguaRecorder {
 
 
 	/**
-	 * First step to initialise the LinguaRecorder object. Try to get a MediaStream object
+	 * First step to initialize the LinguaRecorder object. Try to get a MediaStream object
 	 * with tracks containing an audio input from the microphone of the user.
 	 *
 	 * Note that it will prompt a notification requesting permission from the user.
@@ -350,7 +350,7 @@ class LinguaRecorder {
 	 * @private
 	 */
 	async _getAudioStream() {
-		// TODO: benefit from the MediaTrackConstraints when geting the stream https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints#instance_properties
+		// TODO: benefit from the MediaTrackConstraints when getting the stream https://developer.mozilla.org/en-US/docs/Web/API/MediaTrackConstraints#instance_properties
 		try {
 			this.stream = await navigator.mediaDevices.getUserMedia({audio: true, video:false})
 		}
@@ -377,7 +377,7 @@ class LinguaRecorder {
 		this.audioInput = this.audioContext.createMediaStreamSource( this.stream );
 
 		// We load our AudioWorkletProcessor module as a blob url containing a stringified IIFE code
-		// instead of givng a traditional url, because we don't know here the path at which
+		// instead of giving a traditional url, because we don't know here the path at which
 		// the RecordingProcessor.js file will be accessible
 		const blob = new Blob([`(${recordingProcessorEncapsulation})()`], { type: "application/javascript; charset=utf-8" });
 		await this.audioContext.audioWorklet.addModule(URL.createObjectURL(blob));
@@ -409,11 +409,11 @@ class LinguaRecorder {
 					this._state = STATE.paused;
 					this._fire( 'paused' );
 					break;
-				case 'stoped':
+				case 'stopped':
 					this._state = STATE.stop;
 					this._duration = 0;
 					this._disconnect();
-					this._fire( 'stoped', new AudioRecord( event.data.record, this.audioContext.sampleRate ) );
+					this._fire( 'stopped', new AudioRecord( event.data.record, this.audioContext.sampleRate ) );
 					break;
 				case 'canceled':
 					this._state = STATE.stop;

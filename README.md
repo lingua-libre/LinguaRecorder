@@ -7,11 +7,11 @@ LinguaRecorder is a fast cross-browser voice recording JS library.
 * Fully configurable
 * Intelligent cutting to avoid blanks at the start/end of a record
 * Saturation control to cancel/discard bad records
-* Whole bunch of events allowing you to asynchronousely manage your user's actions
+* Whole bunch of events allowing you to asynchronously manage your user's actions
 * Wide possibilities for exporting your records, including:
   * Play in browser
   * Direct download
-  * WAV-encoded Blob (to send to an API for exemple)
+  * WAV-encoded Blob (to send to an API for example)
   * URL object
 * ...
 
@@ -22,15 +22,15 @@ Tested in the following browsers/versions:
 |---------------------|---------------|---------------|
 | Firefox             | 76+           | 25+           |
 | Chrome              | 66+           | 22+           |
-| Firefox for androïd | 79+           | 57+ *         |
-| Chrome for androïd  | 66+           | 63+ *         |
+| Firefox for android | 79+           | 57+ *         |
+| Chrome for android  | 66+           | 63+ *         |
 | Microsoft Edge      | 79+           | 12+           |
 | Safari              | 14.1+         | 11+           |
 | Opera               | 53+           | 18+           |
 
 It may work on older versions of the browsers marked with \*, but it has not been tested.
 
-The _master branch_ uses internaly the new [AudioWorklet API](https://developer.mozilla.org/fr/docs/Web/API/AudioWorklet), whereas the _legacy branch_ uses the old and now deprecated [BaseAudioContext:createScriptProcessor method](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createScriptProcessor).
+The _master branch_ uses internally the new [AudioWorklet API](https://developer.mozilla.org/fr/docs/Web/API/AudioWorklet), whereas the _legacy branch_ uses the old and now deprecated [BaseAudioContext:createScriptProcessor method](https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createScriptProcessor).
 
 ### Live demos
 The [LinguaRecorder sandbox](https://lingua-libre.github.io/LinguaRecorder/demo/sandbox.html) allows you to get familiar with (hardly) all features of the library, and to play with it's configuration possibilities.
@@ -111,7 +111,7 @@ Duration value in seconds. Discard the record if it last less than minDuration. 
 #### constructor([config])
 Creates a new LinguaRecorder instance.
 
-* __config__: `Object` `optional` Configuration options as described aboe.
+* __config__: `Object` `optional` Configuration options as described above.
 * __⇒__ `this`
 
 #### start()
@@ -124,7 +124,7 @@ If _autoStart_ is set to true, enter in listening state and postpone the start o
 #### pause()
 Switch the record to the pause state.
 
-While in pause, all the inputs comming from the microphone will be ignored. To resume to the recording state, just call the start() method again. It is also still possible to stop() or cancel() a record, and you have to do so upstream if you wish to start a new one.
+While in pause, all the inputs coming from the microphone will be ignored. To resume to the recording state, just call the start() method again. It is also still possible to stop() or cancel() a record, and you have to do so upstream if you wish to start a new one.
 
 * __⇒__ `this`
 
@@ -164,7 +164,7 @@ Remove all the handler function from an event.
 #### connectAudioNode(node)
 Add an extra AudioNode
 
-This can be used to draw a live visualisation of the sound, or to perform some live editing tasks on the stream before it is recorded. See https://developer.mozilla.org/fr/docs/Web/API/AudioNode
+This can be used to draw a live visualization of the sound, or to perform some live editing tasks on the stream before it is recorded. See https://developer.mozilla.org/fr/docs/Web/API/AudioNode
 
 Note that it can produce a little interrupt in the record if you are in listening or recording state.
 
@@ -190,7 +190,7 @@ Return the current state of the recorder.
 * __⇒__ `string` One of the following: 'stop', 'listening', 'recording', 'paused'
 
 #### getAudioContext()
-Return the audioContext initialised and used by the recorder.
+Return the audioContext initialized and used by the recorder.
 
 see https://developer.mozilla.org/fr/docs/Web/API/AudioContext
 
@@ -198,25 +198,25 @@ see https://developer.mozilla.org/fr/docs/Web/API/AudioContext
 
 #### close()
 Cleanly stop the threaded execution of the audio recorder in preparation for the destruction of the current LinguaRecorder instance.
-This method has to be called, otherwise memory leak will happend.
+This method has to be called, otherwise memory leak will happened.
 
 * __⇒__ `this`
 
 ### Events
 * __ready__: `MediaStream` The user has allowed your script to use the microphone, the recorder is ready to start a record.
-* __readyFail__: `DOMException` Something got wrong during the initialisation; maybe the user has no microphone, or he has not allowed you to use it. For the full exceptions list, see https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions.
+* __readyFail__: `DOMException` Something got wrong during the initialization; maybe the user has no microphone, or he has not allowed you to use it. For the full exceptions list, see https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia#Exceptions.
 * __started__: A record has just started; or to say it differently the recorder switched to the _record_ state.
-* __recording__: `Float32Array` Firered when in the _record_ state, each time it has N new samples available (N = `bufferSize`); the given parameter is an array containing those new samples.
+* __recording__: `Float32Array` Fired when in the _record_ state, each time it has N new samples available (N = `bufferSize`); the given parameter is an array containing those new samples.
 * __listening__: `Float32Array` Same as the _recording_ event, but when the recorder is in the _listen_ state.
 * __saturated__: Fired each time the record get saturated.
 * __paused__: The record has just being paused; or to say it differently the recorder switched to the _pause_ state.
-* __stoped__: `AudioRecord` The record has just being stopped; or to say it differently the recorder switched to the _stop_ state. It includes a reference to an AudioRecord, containing the stopped record.
-* __canceled__: `string` The record has just being canceled, the `string` contains the reason of the cancelation, one of the following: _'asked'_, _'saturated'_ (when `onSaturate` is set to _'cancel'_), _'tooShort'_ (when `minDuration` is not reached).
+* __stopped__: `AudioRecord` The record has just being stopped; or to say it differently the recorder switched to the _stop_ state. It includes a reference to an AudioRecord, containing the stopped record.
+* __canceled__: `string` The record has just being canceled, the `string` contains the reason of the cancellation, one of the following: _'asked'_, _'saturated'_ (when `onSaturate` is set to _'cancel'_), _'tooShort'_ (when `minDuration` is not reached).
 
 
 ### States
 * __stop__: `default` Not recording yet, what are you waiting?
-* __listen__: You've hit start, but you've not sepaken yet, it's time to do so! (only when `autoStart` is _true_)
+* __listen__: You've hit start, but you've not spoken yet, it's time to do so! (only when `autoStart` is _true_)
 * __record__: Currently recording. That's amazing, isn't it?
 * __pause__: It was recording, but a dog just walked in so you paused the record the time to kick it away, but you wish to finish it later.
 
@@ -226,7 +226,7 @@ This method has to be called, otherwise memory leak will happend.
 Creates a new AudioRecord instance.
 
 * __samples__: `Float32Array` The raw samples that will make up the record.
-* __sampleRate__: `Number` Rate at witch the samples added to this object should be played.
+* __sampleRate__: `Number` Rate at which the samples added to this object should be played.
 * __⇒__ `this`
 
 #### setSampleRate(value)
@@ -253,12 +253,12 @@ Get all the raw samples that make up the record.
 
 * __⇒__ `Float32Array` List of all samples.
 
-#### ltrim(duration)
+#### lTrim(duration)
 Trim the record, starting with the beginning of the record (the left side).
 
 * __duration__: `Number` duration (in seconds) to trim.
 
-#### rtrim(duration)
+#### rTrim(duration)
 Trim the record, starting with the end of the record (the right side).
 
 * __duration__: `Number` duration (in seconds) to trim.
@@ -307,7 +307,7 @@ As the `BaseAudioContext:createScriptProcessor` is now deprecated, it became imp
 Note also that using `AudioWorklet` breaks the [compatibility with old browsers](#browser-compatibility).
   
 
-## Licence
-The LinguaRecorder was originaly a part of [LinguaLibre](https://lingualibre.fr), developped by Nicolas Vion ([@zmoostik](https://github.com/zmoostik)), but has then been splitted out and completely rewritten by Antoine Lamielle ([@0x010C](https://github.com/0x010C)).
+## License
+The LinguaRecorder was originally a part of [LinguaLibre](https://lingualibre.fr), developed by Nicolas Vion ([@zmoostik](https://github.com/zmoostik)), but has then been split out and completely rewritten by Antoine Lamielle ([@0x010C](https://github.com/0x010C)).
 
 Released under the [MIT License](https://github.com/lingua-libre/LinguaRecorder/blob/master/LICENSE).

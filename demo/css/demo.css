@@ -21,7 +21,7 @@
     left: 0px;
 }
 
-.studio-rbutton {
+.studio-rButton {
     position: absolute;
     top: 0px;
     left: 125px;
@@ -32,7 +32,7 @@
     background: white;
 }
 
-.studio-rec .studio-rbutton {
+.studio-rec .studio-rButton {
     border: 10px solid #232323;
 
     animation-name: pulse;
@@ -41,7 +41,7 @@
     animation-timing-function: linear;
 }
 
-.studio-rbutton-inner {
+.studio-rButton-inner {
     position: absolute;
     top: 5px;
     left: 5px;
@@ -53,19 +53,19 @@
     background: rgb(214, 214, 214);
 }
 
-.studio-rbutton-inner::-moz-focus-inner {
+.studio-rButton-inner::-moz-focus-inner {
     border: 0;
 }
 
-.studio-ready .studio-rbutton-inner {
+.studio-ready .studio-rButton-inner {
     background-color: #d8938a;
 }
 
-.studio-ready .studio-rbutton-inner:hover {
+.studio-ready .studio-rButton-inner:hover {
     background-color: #ce8177;
 }
 
-.studio-ready.studio-rec .studio-rbutton-inner {
+.studio-ready.studio-rec .studio-rButton-inner {
     background-color: #d12c17;
 }
 
@@ -113,7 +113,7 @@
     background: tomato;
 }
 
-.studio-wordcanvas {
+.studio-wordCanvas {
     position: absolute;
     top: 0px;
     left: 0px;
@@ -162,7 +162,7 @@
     width: auto;
 }
 
-.mini .studio-rbutton {
+.mini .studio-rButton {
     position: relative;
     top: 0px;
     left: 0px;
@@ -183,7 +183,7 @@
     height: auto;
     width: auto;
 }
-.micro .studio-rbutton {
+.micro .studio-rButton {
     position: static;
     top: 0px;
     left: 0px;
@@ -198,11 +198,11 @@
 }
 
 
-.micro .studio-ready .studio-rbutton {
+.micro .studio-ready .studio-rButton {
     background-color: darkred;
 }
 
-.micro .studio-rec .studio-rbutton {
+.micro .studio-rec .studio-rButton {
     background-color: red;
     border: 0;
 }

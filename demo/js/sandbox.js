@@ -25,7 +25,7 @@ function initRecorder() {
     recorder = new LinguaRecorder( getConfigFromInputs() );
 
     recorder.on( 'ready', function() {
-        /* Setup the graph with an analyser binded to our new recorder */
+        /* Setup the graph with an analyser bound to our new recorder */
         var analyser = recorder.getAudioContext().createAnalyser();
         recorder.connectAudioNode( analyser );
         if ( graph === null ) {
@@ -36,7 +36,7 @@ function initRecorder() {
         }
         incrementEvent( '#ready' );
     } ).on( 'readyFail', function() {
-        incrementEvent( '#readyfail' );
+        incrementEvent( '#readyFail' );
     } ).on( 'started', function() {
         incrementEvent( '#started' );
     } ).on( 'recording', function() {
@@ -47,9 +47,9 @@ function initRecorder() {
         incrementEvent( '#saturated' );
     } ).on( 'paused', function() {
         incrementEvent( '#paused' );
-    } ).on( 'stoped', function( audioRecord ) {
+    } ).on( 'stopped', function( audioRecord ) {
         addSound( audioRecord );
-        incrementEvent( '#stoped' );
+        incrementEvent( '#stopped' );
     } ).on( 'canceled', function() {
         incrementEvent( '#canceled' );
     } );
@@ -84,7 +84,7 @@ function addSound( audioRecord ) {
     item.append( soundIcon ).append( content );
     $( '#sounds' ).append( item );
 
-    /* Complete with informations from the new AudioRecord */
+    /* Complete with information from the new AudioRecord */
     console.log(audioRecord)
     var duration = Math.round( audioRecord.getDuration() * 1000 ) / 1000;
     header.text( duration + ' seconds' );
