@@ -20,7 +20,7 @@ class AudioRecord {
 	 * Creates a new AudioRecord instance.
 	 * 
 	 * @param {Float32Array} [samples] The raw samples that will make up the record
-	 * @param {Number} [sampleRate] Rate at witch the samples added to this object should be played
+	 * @param {Number} [sampleRate] Rate at which the samples added to this object should be played
 	 */
 	constructor( samples, sampleRate ) {
 		this.sampleRate = sampleRate;
@@ -85,7 +85,7 @@ class AudioRecord {
 	 *
 	 * @param {Number} [duration] duration (in seconds) to trim.
 	 */
-	ltrim( duration ) {
+	lTrim( duration ) {
 		var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 		if ( nbSamplesToRemove >= this.samples.length ) {
@@ -102,7 +102,7 @@ class AudioRecord {
 	 *
 	 * @param {Number} [duration] duration (in seconds) to trim.
 	 */
-	rtrim( duration ) {
+	rTrim( duration ) {
 		var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 		if ( nbSamplesToRemove >= this.samples.length ) {
@@ -128,7 +128,7 @@ class AudioRecord {
 	play() {
 		var audioContext = new window.AudioContext();
 
-		var buffer = audioContext.createBuffer( 1, this.samples.length, 48000 ); //samplerate
+		var buffer = audioContext.createBuffer( 1, this.samples.length, 48000 );  // sample rate
 		var channelData = buffer.getChannelData( 0 );
 		for ( let i = 0; i < this.samples.length; i++ ) {
 			channelData[i] = this.samples[ i ];
@@ -186,7 +186,7 @@ class AudioRecord {
 			if ( BANNED_SAMPLES.indexOf( sample ) > -1 ) {
 				sample++;
 			}
-			/* Append the sample in the data chunck */
+			/* Append the sample in the data chunk */
 			view.setInt16( 44 + i * 2, sample, true );
 		}
 

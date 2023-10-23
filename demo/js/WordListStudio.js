@@ -5,7 +5,7 @@
  - Propriser
  - Documenter
  - Allow on-the-fly word addition
- - todo: autoscroll
+ - todo: auto-scroll
  - max-size
 */
 
@@ -15,13 +15,13 @@ var WordListStudio = function( config ) {
     Studio.call( this, config );
 
     this.currentWord = { text: null, index: null, $word: null };
-    this.amplitudeCanvas = this.$element.find( '.studio-wordcanvas' ).detach().removeClass( 'hidden' )[ 0 ];
+    this.amplitudeCanvas = this.$element.find( '.studio-wordCanvas' ).detach().removeClass( 'hidden' )[ 0 ];
     this.amplitudeCtx = this.amplitudeCanvas.getContext('2d');
     this.amplitudeCtx.save();
     this.amplitudeValues = [];
     this.records = [];
 
-    // Initialise the word list
+    // Initialize the word list
     config.words = config.words || [];
     var $wordListElement = this.$element.find( '.studio-wordlist' );
     for ( var i = 0; i < config.words.length; i++ ) {
@@ -66,7 +66,7 @@ WordListStudio.prototype.onStart = function() {
 WordListStudio.prototype.onStop = function( audioRecord ) {
     Studio.prototype.onStop.call( this );
 
-    // Store localy the audioRecord
+    // Store the audioRecord locally
     var soundId = this.records.push( audioRecord ) - 1;
 
     // Send the record to the API
@@ -101,7 +101,7 @@ WordListStudio.prototype.onCancel = function( reason ) {
     this.amplitudeCtx.clearRect( 0, 0, this.amplitudeCanvas.width, this.amplitudeCanvas.height );
 
     if ( reason !== 'asked' ) {
-        // Make the curent word element blink for 0.5s in red to warn that it has been canceled
+        // Make the current word element blink for 0.5s in red to warn that it has been canceled
         var $word = this.currentWord.$word;
         $word.addClass( 'studio-wordlist-error' );
         setTimeout( function() {

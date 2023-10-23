@@ -24,7 +24,7 @@ function recordingProcessorEncapsulation() {
 		/**
 		 * Creates a new AudioSamples instance.
 		 * 
-		 * @param {Number} [sampleRate] Rate at witch the samples added to this object should be played
+		 * @param {Number} [sampleRate] Rate at which the samples added to this object should be played
 		 */
 		constructor( sampleRate ) {
 			this.sampleRate = sampleRate;
@@ -47,7 +47,7 @@ function recordingProcessorEncapsulation() {
 			if ( rollingDuration !== undefined ) {
 				let duration = this.getDuration();
 				if ( duration > rollingDuration ) {
-					this.ltrim( duration - rollingDuration );
+					this.lTrim( duration - rollingDuration );
 				}
 			}
 
@@ -90,7 +90,7 @@ function recordingProcessorEncapsulation() {
 		 *
 		 * @param {Number} [duration] duration (in seconds) to trim
 		 */
-		ltrim( duration ) {
+		lTrim( duration ) {
 			var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 			if ( nbSamplesToRemove >= this.length ) {
@@ -114,7 +114,7 @@ function recordingProcessorEncapsulation() {
 		 *
 		 * @param {Number} [duration] duration (in seconds) to trim
 		 */
-		rtrim( duration ) {
+		rTrim( duration ) {
 			var nbSamplesToRemove = Math.round( duration * this.sampleRate );
 
 			if ( nbSamplesToRemove >= this.length ) {
@@ -219,7 +219,7 @@ function recordingProcessorEncapsulation() {
 						this._isRunning = false;
 						break;
 
-					case 'setconfig':
+					case 'setConfig':
 						this._setConfig( event.data.extra );
 						break;
 				}
@@ -314,7 +314,7 @@ function recordingProcessorEncapsulation() {
 				this.port.postMessage({ message: 'canceled', reason: 'tooShort' });
 			}
 			else {
-				this.port.postMessage({ message: 'stoped', record: this._audioSamples.get() });
+				this.port.postMessage({ message: 'stopped', record: this._audioSamples.get() });
 			}
 
 			this._state = STATE.stop;
@@ -341,7 +341,7 @@ function recordingProcessorEncapsulation() {
 
 			if ( this._state === STATE.listening ) {
 				// Get the samples from the first channel of the first input available
-				// and copy them in a new Float32Array, to avoid memory dealocation
+				// and copy them in a new Float32Array, to avoid memory deallocation
 				this._audioListeningProcess( new Float32Array( inputs[0][0] ) );
 			}
 			else if ( this._state === STATE.recording ) {
@@ -359,13 +359,13 @@ function recordingProcessorEncapsulation() {
 
 		/**
 		 * Check whether it can auto-start recording, or store
-		 * the last marginBefore seconds incomming from the microphone.
+		 * the last marginBefore seconds incoming from the microphone.
 		 * 
 		 * @param {Float32Array} [samples] Array of audio samples to process.
 		 * @private
 		 */
 		_audioListeningProcess( samples ) {
-			// Analyse the sound to autoStart when it should
+			// Analyze the sound to autoStart when it should
 			for ( let i = 0; i < samples.length; i++ ) {
 				let amplitude = Math.abs( samples[ i ] );
 				if ( amplitude > this.config.startThreshold ) {
@@ -385,10 +385,10 @@ function recordingProcessorEncapsulation() {
 
 
 		/**
-		 * Saves the incomming audio stream from the user's microphone
+		 * Saves the incoming audio stream from the user's microphone
 		 * into the AudioSamples storage.
 		 *
-		 * Checks also if the incomming sound is not saturated, if the timeLimit
+		 * Checks also if the incoming sound is not saturated, if the timeLimit
 		 * is not reached, and if the record should auto-stop.
 		 *
 		 * @param {Float32Array} [samples] Array of audio samples to process.
@@ -413,7 +413,7 @@ function recordingProcessorEncapsulation() {
 				}
 			}
 
-			// Analyse the sound to autoStop if needed
+			// Analyze the sound to autoStop if needed
 			if ( this.config.autoStop ) {
 				let amplitudeMax = 0;
 				for ( let i = 0; i < samples.length; i++ ) {
@@ -427,7 +427,7 @@ function recordingProcessorEncapsulation() {
 					this._silenceSamplesCount += samples.length;
 
 					if ( this._silenceSamplesCount >= ( this.config.stopDuration * this.config.sampleRate ) ) {
-						this._audioSamples.rtrim( this.config.stopDuration - this.config.marginAfter );
+						this._audioSamples.rTrim( this.config.stopDuration - this.config.marginAfter );
 						this._stop();
 					}
 				}

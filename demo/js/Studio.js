@@ -39,7 +39,7 @@ var Studio = function( config ) {
     this.recorder.on( 'ready', this.onReady.bind( this ) );
     this.recorder.on( 'started', this.onStart.bind( this ) );
     this.recorder.on( 'recording', this.onRecord.bind( this ) );
-    this.recorder.on( 'stoped', this.onStop.bind( this ) );
+    this.recorder.on( 'stopped', this.onStop.bind( this ) );
     this.recorder.on( 'canceled', this.onCancel.bind( this ) );
     this.recorder.on( 'saturated', this.onSaturate.bind( this ) );
 
@@ -54,7 +54,7 @@ Studio.prototype.onReady = function() {
 
     this.recorder.connectAudioNode( this.analyser );
 
-    this.$element.find( '.studio-rbutton' ).click( this.onRecordingButtonClick.bind( this ) );
+    this.$element.find( '.studio-rButton' ).click( this.onRecordingButtonClick.bind( this ) );
 
     this.$element.find( '.studio-head' ).addClass( 'studio-ready' );
 
