@@ -1,8 +1,10 @@
 declare interface AudioRecord {
+	new(samples: Float32Array, sampleRate: number): AudioRecordInstance;
+}
+
+declare interface AudioRecordInstance {
 	samples: Float32Array;
 	sampleRate: number;
-
-	constructor(samples: Float32Array, sampleRate: number);
 
 	setSampleRate(value: number): void;
 	getSampleRate(): number;
@@ -28,7 +30,7 @@ declare interface RecordProcessorConfig {
 	autoStop?: boolean;
 	bufferSize?: 0 | 256 | 512 | 1024 | 2048 | 4096 | 8192 | 16384;
 	timeLimit?: number;
-	onSaturate?: 'none' | 'cancel' | 'discard';
+	onSaturate?: "none" | "cancel" | "discard";
 	saturationThreshold?: number;
 	startThreshold?: number;
 	stopThreshold?: number;
@@ -58,10 +60,10 @@ declare enum EVENT {
 }
 
 declare interface LinguaRecorder {
-	new(recordProcessorConfig?: RecordProcessorConfig): LinguaRecorderClass;
+	new(recordProcessorConfig?: RecordProcessorConfig): LinguaRecorderInstance;
 }
 
-declare interface LinguaRecorderClass {
+declare interface LinguaRecorderInstance {
 	stream: MediaStream | null;
 	audioContext: AudioContext | null;
 	audioInput: MediaStreamAudioSourceNode | null;
@@ -74,25 +76,23 @@ declare interface LinguaRecorderClass {
 	_state: STATE;
 	_duration: number;
 
-	constructor(recordProcessorConfig?: RecordProcessorConfig);
-
-    setConfig(config: object): LinguaRecorderClass;
+    setConfig(config: object): LinguaRecorderInstance;
     getRecordingTime(): number;
     getState(): STATE;
     getAudioContext(): AudioContext | null;
-	start(): LinguaRecorderClass;
-	pause(): LinguaRecorderClass;
-	stop(): LinguaRecorderClass;
-	cancel(): LinguaRecorderClass;
-    toggle(): LinguaRecorderClass;
-	resume(): LinguaRecorderClass;
-    on(event: string, handler: (value?: any) => void): LinguaRecorderClass;
-	off(event: string, handler?: (value?: any) => void): LinguaRecorderClass;
-	connectAudioNode(node: AudioNode): LinguaRecorderClass;
-    disconnectAudioNode(node: AudioNode): LinguaRecorderClass;
-    close(): LinguaRecorderClass | undefined;
+	start(): LinguaRecorderInstance;
+	pause(): LinguaRecorderInstance;
+	stop(): LinguaRecorderInstance;
+	cancel(): LinguaRecorderInstance;
+    toggle(): LinguaRecorderInstance;
+	resume(): LinguaRecorderInstance;
+    on(event: string, handler: (value?: any) => void): LinguaRecorderInstance;
+	off(event: string, handler?: (value?: any) => void): LinguaRecorderInstance;
+	connectAudioNode(node: AudioNode): LinguaRecorderInstance;
+    disconnectAudioNode(node: AudioNode): LinguaRecorderInstance;
+    close(): LinguaRecorderInstance | undefined;
 
-	_sendCommandToProcessor(command: string, extra?: any): LinguaRecorderClass;
+	_sendCommandToProcessor(command: string, extra?: any): LinguaRecorderInstance;
 	_fire(event: string, value?: any): void;
 	_getAudioStream(): Promise<void>;
 	_initStream(): Promise<void>;
