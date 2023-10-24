@@ -306,6 +306,8 @@ As the `BaseAudioContext:createScriptProcessor` is now deprecated, it became imp
 
 Note also that using `AudioWorklet` breaks the [compatibility with old browsers](#browser-compatibility).
   
+## Typescript
+The type declarations for this library, that should go in node_modules/@types/lingua-recorder, are in index.d.ts in this repo.
 
 ## License
 The LinguaRecorder was originally a part of [LinguaLibre](https://lingualibre.fr), developed by Nicolas Vion ([@zmoostik](https://github.com/zmoostik)), but has then been split out and completely rewritten by Antoine Lamielle ([@0x010C](https://github.com/0x010C)).
