@@ -67,6 +67,11 @@ Then include the three files stored in the src folder in your HTML page:
     ...
 </script>
 ```
+Imported this way, the `LinguaRecorder` and `AudioRecord` classes will be present in the document's script namespace.  
+
+There will also be a `window.LinguaRecorder` object created, with properties `.AudioRecord`, `.LinguaRecorder`, `.recordingProcessorEncapsulation`.
+
+If you use a bundler like webpack, none of this will be present in the namespace because of the encapsulation, so you need to handle the imported functions/classes yourself.
 
 ## Examples
 _to do_
@@ -307,7 +312,7 @@ As the `BaseAudioContext:createScriptProcessor` is now deprecated, it became imp
 Note also that using `AudioWorklet` breaks the [compatibility with old browsers](#browser-compatibility).
   
 ## Typescript
-The type declarations for this library, that should go in node_modules/@types/lingua-recorder, are in index.d.ts in this repo.
+The type declarations for this library are provided in index.d.ts.  You can copy this into your codebase to provide your project with the necessary interfaces.  
 
 ## License
 The LinguaRecorder was originally a part of [LinguaLibre](https://lingualibre.fr), developed by Nicolas Vion ([@zmoostik](https://github.com/zmoostik)), but has then been split out and completely rewritten by Antoine Lamielle ([@0x010C](https://github.com/0x010C)).
