@@ -179,6 +179,15 @@ class LinguaRecorder {
 	 * @chainable
 	 */
 	on( event, handler ) {
+		// Create an alias for the old misspelled event 'stoped' -> 'stopped'
+		// see https://github.com/lingua-libre/LinguaRecorder/pull/4
+		// TODO: Remove this if statement at the next major version
+		if ( event === "stoped" ) {
+			event = "stopped";
+			console.warn( "[LinguaRecorder] .on('stoped',...) is deprecated. Please use .on('stopped',...) instead." );
+		}
+
+		// Register the event handler
 		if ( event in this._eventHandlers ) {
 			this._eventHandlers[ event ].push( handler );
 		}
@@ -199,6 +208,15 @@ class LinguaRecorder {
 	 * @chainable
 	 */
 	off( event ) {
+		// Create an alias for the old misspelled event 'stoped' -> 'stopped'
+		// see https://github.com/lingua-libre/LinguaRecorder/pull/4
+		// TODO: Remove this if statement at the next major version
+		if ( event === "stoped" ) {
+			event = "stopped";
+			console.warn( "[LinguaRecorder] .off('stoped') is deprecated. Please use .off('stopped') instead." );
+		}
+
+		// Unregister all event handlers for this event
 		if ( event in this._eventHandlers ) {
 			this._eventHandlers[ event ] = [];
 		}
