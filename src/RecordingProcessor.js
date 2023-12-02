@@ -146,24 +146,7 @@ function recordingProcessorEncapsulation() {
 	 * @private
 	 */
 	class RecordingProcessor extends AudioWorkletProcessor {
-		config = {
-			autoStart: false,
-			autoStop: false,
-			timeLimit: 0,
-			onSaturate: 'none',
-			saturationThreshold: 0.99,
-			startThreshold: 0.1,
-			stopThreshold: 0.05,
-			stopDuration: 0.3,
-			marginBefore: 0.25,
-			marginAfter: 0.25,
-			minDuration: 0.15
-		};
-		_isRunning = true;
-		_state = STATE.stop;
-		_audioSamples = null;
-		_silenceSamplesCount = 0;
-		_isSaturated = false;
+
 	
 		/**
 		 * Creates a new RecordingProcessor instance
@@ -186,6 +169,25 @@ function recordingProcessorEncapsulation() {
 		 */
 		constructor( options ) {
 			super();
+
+			this.config = {
+				autoStart: false,
+				autoStop: false,
+				timeLimit: 0,
+				onSaturate: 'none',
+				saturationThreshold: 0.99,
+				startThreshold: 0.1,
+				stopThreshold: 0.05,
+				stopDuration: 0.3,
+				marginBefore: 0.25,
+				marginAfter: 0.25,
+				minDuration: 0.15
+			};
+			this._isRunning = true;
+			this._state = STATE.stop;
+			this._audioSamples = null;
+			this._silenceSamplesCount = 0;
+			this._isSaturated = false;
 
 			this._setConfig( options.processorOptions );
 			this.port.onmessage = ( event ) => {
