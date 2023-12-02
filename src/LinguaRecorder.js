@@ -1,5 +1,16 @@
 'use strict';
 
+var imports = {}
+if ( typeof AudioRecord !== "undefined" && typeof recordingProcessorEncapsulation !== "undefined" ) {
+	// Standard browser <script> -based imports
+	imports.recordingProcessorEncapsulation = recordingProcessorEncapsulation;
+	imports.AudioRecord = AudioRecord;
+} else if ( typeof module === "object" && module.exports ) {
+	// Node-style imports
+	imports.recordingProcessorEncapsulation = require('./RecordingProcessor').recordingProcessorEncapsulation;
+	imports.AudioRecord = require('./AudioRecord').AudioRecord;
+}
+
 
 const STATE = {
 	stop: 'stop',
@@ -397,7 +408,7 @@ class LinguaRecorder {
 		// We load our AudioWorkletProcessor module as a blob url containing a stringified IIFE code
 		// instead of giving a traditional url, because we don't know here the path at which
 		// the RecordingProcessor.js file will be accessible
-		const blob = new Blob([`(${recordingProcessorEncapsulation})()`], { type: "application/javascript; charset=utf-8" });
+		const blob = new Blob([`(${imports.recordingProcessorEncapsulation})()`], { type: "application/javascript; charset=utf-8" });
 		await this.audioContext.audioWorklet.addModule(URL.createObjectURL(blob));
 
 		this.recordProcessorConfig.sampleRate = this.audioContext.sampleRate;
@@ -431,7 +442,7 @@ class LinguaRecorder {
 					this._state = STATE.stop;
 					this._duration = 0;
 					this._disconnect();
-					this._fire( 'stopped', new AudioRecord( event.data.record, this.audioContext.sampleRate ) );
+					this._fire( 'stopped', new imports.AudioRecord( event.data.record, this.audioContext.sampleRate ) );
 					break;
 				case 'canceled':
 					this._state = STATE.stop;

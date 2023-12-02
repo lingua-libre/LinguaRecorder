@@ -1,6 +1,6 @@
 {
   "name": "lingua-recorder",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "A JavaScript library for easy and efficient voice recording tasks.",
   "files": [
     "src"
@@ -14,6 +14,11 @@
     "voice",
     "audio"
   ],
+  "main": "./src/LinguaRecorder.js",
+  "module": "./src/LinguaRecorder.js",
+  "exports": {
+    ".": "./src/LinguaRecorder.js"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/lingua-libre/LinguaRecorder/issues"
