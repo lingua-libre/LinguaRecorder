@@ -52,11 +52,12 @@ The demo folder contain several other implementation examples.
 * [License](#license)
 
 ## Quick Start
-Get the code:
+### Get the code:
 * Clone github repository: `git clone https://github.com/lingua-libre/LinguaRecorder.git`
 * Install with [npm](https://www.npmjs.com/package/lingua-recorder): `npm install lingua-recorder`
 * Use a CDN: _todo_
 
+### Use it in browser
 Then include the three files stored in the src folder in your HTML page:
 ```html
 <script src="/path/to/RecordingProcessor.js"></script>
@@ -72,6 +73,13 @@ Imported this way, the `LinguaRecorder` and `AudioRecord` classes will be presen
 There will also be a `window.LinguaRecorder` object created, with properties `.AudioRecord`, `.LinguaRecorder`, `.recordingProcessorEncapsulation`.
 
 If you use a bundler like webpack, none of this will be present in the namespace because of the encapsulation, so you need to handle the imported functions/classes yourself.
+
+### Use it with nodeJS
+```js
+{ LinguaRecorder } = require('lingua-recorder')
+var recorder = new LinguaRecorder();
+...
+```
 
 ## Examples
 _to do_
