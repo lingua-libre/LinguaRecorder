@@ -440,7 +440,7 @@ function recordingProcessorEncapsulation() {
 
 			// If one is set, check if we have not reached the time limit
 			if ( this.config.timeLimit > 0 ) {
-				if ( this.config.timeLimit >= this._audioSamples.getDuration() ) {
+				if ( this.config.timeLimit <= this._audioSamples.getDuration() ) {
 					this._stop();
 				}
 			}
