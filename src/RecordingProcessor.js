@@ -303,7 +303,7 @@ function recordingProcessorEncapsulation() {
 				return;
 			}
 
-			if ( cancelRecord === true ) {
+			if ( cancelRecord === true || this._state == STATE.listening ) {
 				this._audioSamples = null;
 				this.port.postMessage({ message: 'canceled', reason: 'asked' });
 			}
